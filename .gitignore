@@ -39,3 +39,9 @@ yarn-error.log*
 /.wrangler/
 /outputs/
 /work/
+
+# typescript build info
+tsconfig.tsbuildinfo
+
+# local agent tooling (preview launcher)
+.claude/

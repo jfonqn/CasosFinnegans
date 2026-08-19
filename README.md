@@ -18,6 +18,28 @@ npm run build
 
 This starter does not use `wrangler.jsonc`.
 
+## Deploy targets
+
+El código de `app/` es Next.js App Router estándar, así que el proyecto compila
+para dos runtimes distintos. Ninguno pisa al otro.
+
+| Target | Comandos | Salida |
+| --- | --- | --- |
+| Cloudflare Workers (vinext) | `npm run dev` / `build` / `start` | `dist/` |
+| Vercel (Next.js) | `npm run dev:next` / `build:next` / `start:next` | `.next/` |
+
+Vercel lee `vercel.json`, que fuerza `next build`. Sin eso correría el script
+`build`, que produce un bundle de Workers que Vercel no sabe ejecutar.
+
+Los dos builds escriben en `.next/`, así que encadenarlos en el mismo árbol deja
+tipos generados inconsistentes. Si vas a alternar, borrá `.next/` en el medio. Además,
+`next build` reescribe `next-env.d.ts` con sus propias referencias en lugar de
+`vinext/types`; los dos builds siguen pasando así, pero no lo edites a mano.
+
+`worker/`, `db/` y `examples/` son exclusivos de Cloudflare y están excluidos del
+`tsconfig.json`: apuntan al runtime de Workers, cuyos globals chocan con los del
+DOM que usa la app.
+
 ## Included Shape
 
 - edit site code under `app/`
