@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Lockup, PairedHeading, Panel, SectionPill } from "./fisterra";
 
 type CaseData = {
   caseNumber: string;
@@ -44,6 +45,19 @@ const initialData: CaseData = {
   accessConfirmed: false,
 };
 
+/* Props de marca del documento de diseño (sección "Marca"). */
+type CtaTone = "rojo" | "navy";
+
+const CTA_BG: Record<CtaTone, string> = {
+  rojo: "#F52125",
+  navy: "linear-gradient(100deg,#1C4257 0%,#0A2F43 100%)",
+};
+
+const CTA_TONE: CtaTone = "rojo";
+const CLAIM = "Brindamos soluciones estratégicas en contabilidad e impuestos.";
+
+const ctaBg = CTA_BG[CTA_TONE];
+
 const drivePattern = /^https?:\/\/(drive|docs)\.google\.com\//i;
 
 function clean(text: string) {
@@ -61,7 +75,7 @@ export default function Home() {
     setData((current) => ({ ...current, [key]: value }));
 
   const driveLinks = data.evidence
-    .split(/\n|,/) 
+    .split(/\n|,/)
     .map((item) => item.trim())
     .filter(Boolean);
   const invalidLinks = driveLinks.filter((link) => !drivePattern.test(link));
@@ -125,19 +139,24 @@ ${evidenceText}
 Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de confirmar"}`;
   }, [data, driveLinks]);
 
-  const ready = progress === 100 && driveLinks.length > 0 && invalidLinks.length === 0 && data.accessConfirmed;
+  const evidenceOk = driveLinks.length > 0 && invalidLinks.length === 0;
+  const ready = progress === 100 && evidenceOk && data.accessConfirmed;
 
   async function copyCase() {
-    await navigator.clipboard.writeText(output);
+    try {
+      await navigator.clipboard.writeText(output);
+    } catch {
+      /* El portapapeles puede estar bloqueado por permisos; el texto sigue visible. */
+    }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
   }
 
   return (
-    <main>
+    <main className="page">
       <header className="topbar">
-        <div className="brand-mark">F</div>
-        <div>
+        <Lockup size={34} />
+        <div className="topbar-id">
           <strong>Casos Finnegans</strong>
           <span>Asistente de carga</span>
         </div>
@@ -145,8 +164,15 @@ Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de c
       </header>
 
       <section className="hero">
-        <div className="eyebrow">NUEVO CASO</div>
-        <h1>Contanos qué pasó.<br /><em>Nosotros lo ordenamos.</em></h1>
+        <SectionPill size="15px" bleed={false}>NUEVO CASO</SectionPill>
+        <div className="hero-heading">
+          <PairedHeading
+            as="h1"
+            line1="CONTANOS QUÉ PASÓ."
+            line2="NOSOTROS LO ORDENAMOS."
+            size="clamp(32px,4.4vw,52px)"
+          />
+        </div>
         <p>Completá la información esencial y obtené un caso claro, verificable y listo para enviar a soporte.</p>
         <div className="progress-wrap" aria-label={`Progreso ${progress}%`}>
           <div className="progress-copy"><span>Progreso del caso</span><b>{progress}%</b></div>
@@ -187,7 +213,7 @@ Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de c
 
           <Section number="03" title="Reproducción y resultado" note="Estos datos ayudan a soporte a repetir el error sin pedir aclaraciones.">
             <Field label="Pasos para reproducir el problema *" hint="Incluí empresa, menú, datos cargados y momento exacto del error.">
-              <textarea className="large" placeholder={'1. Ingresar a…\n2. Seleccionar…\n3. Cargar…\n4. Guardar…'} value={data.steps} onChange={(e) => update("steps", e.target.value)} />
+              <textarea className="large" placeholder={"1. Ingresar a…\n2. Seleccionar…\n3. Cargar…\n4. Guardar…"} value={data.steps} onChange={(e) => update("steps", e.target.value)} />
             </Field>
             <Field label="¿Qué soluciones o pruebas ya se intentaron?">
               <textarea placeholder="Indicá cambios de configuración, pruebas y sus resultados." value={data.attempts} onChange={(e) => update("attempts", e.target.value)} />
@@ -198,32 +224,33 @@ Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de c
           </Section>
 
           <Section number="04" title="Evidencias en Google Drive" note="Finnegans recibe enlaces; no adjuntes archivos físicos.">
-            <div className="drive-callout">
-              <span className="drive-icon">▲</span>
-              <div><strong>Antes de continuar</strong><p>Subí capturas, videos o documentos a Drive y habilitá el acceso para las personas que recibirán el caso.</p></div>
+            <div className="callout">
+              <strong>Antes de continuar</strong>
+              <p>Subí capturas, videos o documentos a Drive y habilitá el acceso para las personas que recibirán el caso.</p>
             </div>
             <Field label="Enlaces de Google Drive" hint="Pegá un enlace por línea.">
-              <textarea placeholder={'https://drive.google.com/…\nhttps://docs.google.com/…'} value={data.evidence} onChange={(e) => update("evidence", e.target.value)} />
+              <textarea placeholder={"https://drive.google.com/…\nhttps://docs.google.com/…"} value={data.evidence} onChange={(e) => update("evidence", e.target.value)} />
             </Field>
             {invalidLinks.length > 0 && <p className="error">Revisá los enlaces: todos deben pertenecer a Google Drive o Google Docs.</p>}
             <label className="check"><input type="checkbox" checked={data.accessConfirmed} onChange={(e) => update("accessConfirmed", e.target.checked)} /><span>Confirmo que soporte puede abrir todos los enlaces</span></label>
           </Section>
 
-          <button className="primary" type="submit">Revisar y generar caso <span>→</span></button>
+          <button className="cta" type="submit" style={{ background: ctaBg }}>Revisar y generar caso</button>
         </form>
 
-        <aside>
+        <aside className="side">
           <div className="side-card">
-            <span className="side-label">CONTROL DE CALIDAD</span>
-            <h3>Un buen caso acelera la solución.</h3>
+            <span className="side-label">Control de calidad</span>
+            <h3>Un buen caso acelera<br /><b>la solución.</b></h3>
             <ul>
               <li className={progress === 100 ? "done" : ""}><span>{progress === 100 ? "✓" : "1"}</span>Datos obligatorios completos</li>
-              <li className={driveLinks.length > 0 && !invalidLinks.length ? "done" : ""}><span>{driveLinks.length > 0 && !invalidLinks.length ? "✓" : "2"}</span>Evidencias enlazadas</li>
+              <li className={evidenceOk ? "done" : ""}><span>{evidenceOk ? "✓" : "2"}</span>Evidencias enlazadas</li>
               <li className={data.accessConfirmed ? "done" : ""}><span>{data.accessConfirmed ? "✓" : "3"}</span>Permisos confirmados</li>
             </ul>
             <div className={`readiness ${ready ? "ready" : ""}`}>{ready ? "Caso listo para enviar" : "Completá los puntos pendientes"}</div>
           </div>
           <div className="tip"><b>Consejo</b><p>Describí hechos observables: qué hiciste, qué mostró el sistema y qué esperabas que sucediera.</p></div>
+          <p className="claim">{CLAIM}</p>
         </aside>
       </div>
 
@@ -231,13 +258,15 @@ Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de c
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="preview-title">
           <div className="modal">
             <button className="close" onClick={() => setShowPreview(false)} aria-label="Cerrar">×</button>
-            <span className="side-label">VISTA PREVIA</span>
-            <h2 id="preview-title">Caso listo para revisar</h2>
+            <span className="side-label">Vista previa</span>
+            <div className="modal-heading">
+              <PairedHeading id="preview-title" line1="CASO LISTO" line2="PARA REVISAR" size="34px" />
+            </div>
             {!ready && <div className="warning">El borrador fue generado, pero todavía hay información o evidencias pendientes.</div>}
             <textarea className="output" value={output} onChange={() => {}} readOnly />
             <div className="modal-actions">
               <button className="secondary" onClick={() => setShowPreview(false)}>Volver a editar</button>
-              <button className="primary compact" onClick={copyCase}>{copied ? "¡Copiado!" : "Copiar caso completo"}</button>
+              <button className="cta compact" onClick={copyCase} style={{ background: ctaBg }}>{copied ? "¡Copiado!" : "Copiar caso completo"}</button>
             </div>
           </div>
         </div>
@@ -247,7 +276,15 @@ Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de c
 }
 
 function Section({ number, title, note, children }: { number: string; title: string; note: string; children: React.ReactNode }) {
-  return <section className="form-section"><div className="section-head"><span>{number}</span><div><h2>{title}</h2><p>{note}</p></div></div><div className="section-body">{children}</div></section>;
+  return (
+    <Panel pad="0">
+      <div className="section-head">
+        <span>{number}</span>
+        <div><h2>{title}</h2><p>{note}</p></div>
+      </div>
+      <div className="section-body">{children}</div>
+    </Panel>
+  );
 }
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {

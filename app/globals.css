@@ -1,24 +1,334 @@
-@import "tailwindcss";
+/* ─────────────────────────────────────────────────────────────────────────
+   Fisterra design system — tokens portados verbatim desde
+   _ds/fisterra-design-system-ebd22bc4-acea-4bd4-9219-217e96906278/tokens/*.css
+   ───────────────────────────────────────────────────────────────────────── */
 
-:root { --ink:#17251f; --green:#116a4d; --mint:#dff2e8; --cream:#f5f4ed; --line:#d9ddd8; --muted:#68746e; --white:#fff; }
-* { box-sizing:border-box; }
-html { scroll-behavior:smooth; }
-body { margin:0; background:var(--cream); color:var(--ink); font-family:Arial,Helvetica,sans-serif; }
-button,input,select,textarea { font:inherit; }
-.topbar { height:72px; display:flex; align-items:center; gap:12px; padding:0 max(24px,calc((100vw - 1180px)/2)); background:#fff; border-bottom:1px solid var(--line); }
-.brand-mark { width:38px;height:38px;border-radius:11px;background:var(--green);color:white;display:grid;place-items:center;font-weight:900;font-family:Georgia,serif;font-size:24px; }
-.topbar strong { display:block;font-size:15px;letter-spacing:-.01em; }.topbar>div:nth-child(2) span{display:block;color:var(--muted);font-size:12px;margin-top:2px}.status-dot{margin-left:auto;color:var(--muted);font-size:12px;display:flex;align-items:center;gap:8px}.status-dot i{width:7px;height:7px;border-radius:50%;background:#56a87e;box-shadow:0 0 0 4px #e5f4eb}
-.hero { background:var(--ink);color:white;padding:64px max(24px,calc((100vw - 1180px)/2)) 56px;position:relative;overflow:hidden; }
-.hero:after { content:"";position:absolute;width:420px;height:420px;border:1px solid rgba(255,255,255,.08);border-radius:50%;right:-90px;top:-220px;box-shadow:0 0 0 70px rgba(255,255,255,.025),0 0 0 140px rgba(255,255,255,.015); }
-.eyebrow,.side-label { font-size:11px;font-weight:800;letter-spacing:.18em;color:#8fc9aa; }
-.hero h1 { max-width:690px;font-size:clamp(38px,5vw,64px);line-height:1.02;letter-spacing:-.045em;margin:15px 0 18px;font-weight:750; }.hero h1 em{color:#96d5b4;font-family:Georgia,serif;font-weight:400}.hero>p{max-width:590px;color:#cbd4cf;font-size:17px;line-height:1.6;margin:0}
-.progress-wrap{max-width:440px;margin-top:34px}.progress-copy{display:flex;justify-content:space-between;font-size:12px;color:#cbd4cf;margin-bottom:9px}.progress-copy b{color:white}.progress{height:4px;background:rgba(255,255,255,.14);border-radius:6px;overflow:hidden}.progress span{display:block;height:100%;background:#8dd2ad;transition:width .3s ease}
-.workspace { max-width:1180px;margin:0 auto;padding:48px 24px 90px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:34px;align-items:start; }
-.case-form { display:flex;flex-direction:column;gap:20px; }.form-section { background:white;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(32,54,45,.04); }.section-head{display:flex;gap:18px;padding:24px 28px;border-bottom:1px solid #edf0ed;align-items:flex-start}.section-head>span{font-family:var(--font-geist-mono);font-size:11px;color:var(--green);background:var(--mint);border-radius:7px;padding:6px 7px;font-weight:800}.section-head h2{font-size:19px;margin:1px 0 5px;letter-spacing:-.02em}.section-head p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}.section-body{padding:28px;display:flex;flex-direction:column;gap:21px}.grid{display:grid;gap:17px}.grid.three{grid-template-columns:repeat(3,1fr)}.grid.two{grid-template-columns:repeat(2,1fr)}
-.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:700}.field small{font-weight:400;color:var(--muted);line-height:1.35;margin-top:-3px}.field input,.field select,.field textarea{width:100%;border:1px solid #cfd5d1;border-radius:9px;padding:12px 13px;background:#fbfcfa;color:var(--ink);outline:none;transition:.15s}.field textarea{min-height:96px;resize:vertical;line-height:1.55}.field textarea.large{min-height:150px}.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(17,106,77,.1);background:white}.field input::placeholder,.field textarea::placeholder{color:#98a19c;font-weight:400}
-.drive-callout{display:flex;gap:15px;background:#f2f8f4;border:1px solid #d2e8db;border-radius:12px;padding:17px 18px}.drive-icon{width:34px;height:34px;border-radius:9px;background:white;color:#23a05a;display:grid;place-items:center;font-size:16px}.drive-callout strong{font-size:13px}.drive-callout p{font-size:13px;color:var(--muted);margin:5px 0 0;line-height:1.45}.check{display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer}.check input{width:17px;height:17px;accent-color:var(--green)}.error{color:#a23b32;background:#fff0ee;padding:10px 12px;border-radius:8px;font-size:12px;margin:-8px 0 0}
-.primary{border:0;background:var(--green);color:white;border-radius:11px;padding:16px 20px;font-weight:800;cursor:pointer;display:flex;justify-content:center;gap:12px;align-items:center;box-shadow:0 8px 20px rgba(17,106,77,.16);transition:.2s}.primary:hover{background:#0c583f;transform:translateY(-1px)}.primary.compact{padding:12px 18px}.secondary{border:1px solid var(--line);background:white;border-radius:10px;padding:12px 18px;font-weight:700;color:var(--ink);cursor:pointer}
-aside{position:sticky;top:22px;display:flex;flex-direction:column;gap:18px}.side-card{background:var(--ink);color:white;border-radius:16px;padding:25px}.side-card h3{font-family:Georgia,serif;font-size:24px;font-weight:400;line-height:1.18;margin:13px 0 24px}.side-card ul{padding:0;margin:0;list-style:none;display:flex;flex-direction:column;gap:15px}.side-card li{font-size:12px;color:#b9c4be;display:flex;align-items:center;gap:10px}.side-card li span{width:24px;height:24px;border:1px solid #506159;border-radius:50%;display:grid;place-items:center;font-size:10px}.side-card li.done{color:white}.side-card li.done span{background:#86cba7;border-color:#86cba7;color:var(--ink);font-weight:900}.readiness{margin-top:23px;border-top:1px solid #3c4d45;padding-top:18px;color:#9eaaa4;font-size:12px;font-weight:700}.readiness.ready{color:#92d4b1}.tip{background:#e6eee9;border-radius:14px;padding:20px}.tip b{font-size:12px;color:var(--green);text-transform:uppercase;letter-spacing:.12em}.tip p{font-size:13px;line-height:1.55;color:#55625b;margin:9px 0 0}
-.modal-backdrop{position:fixed;inset:0;background:rgba(13,26,20,.72);backdrop-filter:blur(7px);z-index:30;display:grid;place-items:center;padding:22px}.modal{width:min(820px,100%);max-height:92vh;background:white;border-radius:18px;padding:30px;position:relative;display:flex;flex-direction:column;box-shadow:0 30px 90px rgba(0,0,0,.3)}.modal h2{font-size:28px;margin:8px 0 18px}.close{position:absolute;right:20px;top:17px;border:0;background:#edf0ed;width:34px;height:34px;border-radius:50%;font-size:24px;cursor:pointer;color:var(--ink)}.warning{background:#fff6df;border:1px solid #eddaa4;color:#6c551e;border-radius:9px;padding:11px 13px;font-size:12px;margin-bottom:14px}.output{width:100%;min-height:390px;max-height:52vh;resize:vertical;border:1px solid var(--line);background:#f8f8f5;border-radius:10px;padding:18px;font-family:var(--font-geist-mono),monospace;font-size:12px;line-height:1.55;color:#25342d}.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
-@media(max-width:900px){.workspace{grid-template-columns:1fr}aside{position:static;order:-1}.side-card h3{font-size:20px}.side-card ul{display:grid;grid-template-columns:repeat(3,1fr)}.grid.three{grid-template-columns:1fr 1fr}.hero{padding-top:48px}.status-dot{display:none}}
-@media(max-width:620px){.topbar{height:64px;padding:0 16px}.hero{padding:40px 20px}.hero h1{font-size:40px}.workspace{padding:28px 14px 60px}.section-head,.section-body{padding:20px}.grid.three,.grid.two{grid-template-columns:1fr}.side-card ul{grid-template-columns:1fr}.modal{padding:22px 16px}.modal-actions{flex-direction:column}.modal-actions button{width:100%}}
+/* Montserrat variable (SIL Open Font License), autohospedada en public/fonts.
+   Un solo archivo cubre 400–700; el itálico va aparte. Se declara acá y no con
+   next/font porque bajo vinext next/font emite la clase pero no su hoja de
+   estilos, y la variable --font-* queda sin definir. */
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/Montserrat-Variable-400-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: italic;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/Montserrat-Variable-Italic.woff2") format("woff2");
+}
+
+/* Color — muestreado pixel a pixel sobre las piezas aprobadas. No agregar hues. */
+:root {
+  /* Marca */
+  --fs-red:#F52125;          /* acento primario: línea 1 del titular, isotipo (luz), CTA */
+  --fs-red-deep:#9C3032;     /* isotipo (sombra), hover/pressed sobre rojo */
+  --fs-navy:#0A2F43;         /* superficies oscuras: pill, tab activa, wordmark */
+  --fs-navy-lift:#1C4257;    /* extremo claro del navy sólido */
+  --fs-ink:#202B56;          /* color tipográfico: línea 2 del titular y cuerpo */
+
+  /* Neutrales */
+  --fs-surface-high:#E4E5E9;
+  --fs-surface:#D7D8DD;      /* fondo de página base — nunca blanco */
+  --fs-surface-low:#B8C4D4;
+  --fs-steel:#A3ABB6;
+  --fs-steel-deep:#6E7A88;
+  --fs-white:#FFFFFF;
+
+  /* Derivados de uso (transparencias sobre el fondo gris) */
+  --fs-panel-fill:rgba(255,255,255,0.42);
+  --fs-panel-edge:rgba(255,255,255,0.85);
+  --fs-rule:rgba(10,47,67,0.14);
+  --fs-ink-dim:#5A6480;
+}
+
+/* Degradés — tres, cada uno con una función fija. Nunca invertir el sentido. */
+:root {
+  --fs-gradient-navy:linear-gradient(100deg,#A8B4C4 0%,#15384B 45%,#0A2F43 100%);
+  --fs-gradient-navy-solid:linear-gradient(100deg,#1C4257 0%,#0A2F43 100%);
+  --fs-gradient-surface:linear-gradient(160deg,#E4E5E9 0%,#D7D8DD 45%,#B8C4D4 100%);
+  --fs-gradient-chip:linear-gradient(90deg,#C3CAD4 0%,#9FAFC2 100%);
+}
+
+/* Tipografía — Montserrat en todo el sistema. La jerarquía la construyen peso, cuerpo y color. */
+:root {
+  --fs-font:"Montserrat","Segoe UI",system-ui,-apple-system,sans-serif;
+  --fs-weight-regular:400;
+  --fs-weight-medium:500;
+  --fs-weight-semibold:600;
+  --fs-weight-bold:700;
+
+  --fs-text-display:47px;
+  --fs-text-pill:40px;
+  --fs-text-wordmark:29px;
+  --fs-text-counter:28px;
+  --fs-text-tab:22px;
+  --fs-text-body:18px;
+
+  --fs-leading-tight:1.05;
+  --fs-leading-body:1.55;
+  --fs-tracking-tab:0.02em;
+  --fs-tracking-wordmark:0.055em;
+  --fs-measure-body:44ch;
+}
+
+/* Espaciado — base 4px, paso ×1.5/×2. */
+:root {
+  --fs-space-1:4px; --fs-space-2:8px; --fs-space-3:12px; --fs-space-4:16px;
+  --fs-space-5:24px; --fs-space-6:32px; --fs-space-7:44px; --fs-space-8:64px;
+  --fs-margin-canvas:4%;
+  --fs-panel-pad:3.4%;
+  --fs-tab-gap:5px;
+}
+
+/* Radios, trazos y sombras. El sistema tiene cuatro radios y nada más. */
+:root {
+  --fs-radius-pill:999px;
+  --fs-radius-panel:28px;
+  --fs-radius-media:16px;
+  --fs-radius-tab:12px 12px 0 0;
+
+  --fs-hairline:1.5px solid rgba(255,255,255,0.85);
+  --fs-shadow-panel:0 2px 20px rgba(10,47,67,0.06);
+  --fs-shadow-logo:6px 8px 12px rgba(10,47,67,0.18);
+
+  /* Movimiento — sobrio: fades y desplazamientos cortos, sin rebotes. */
+  --fs-ease:cubic-bezier(0.22,0.61,0.36,1);
+  --fs-duration:180ms;
+}
+
+/* Alias semánticos — usar estos en producto; los base solo para casos nuevos. */
+:root {
+  --fs-text-strong:var(--fs-navy);
+  --fs-text-default:var(--fs-ink);
+  --fs-text-muted:var(--fs-ink-dim);
+  --fs-text-accent:var(--fs-red);
+  --fs-text-on-dark:var(--fs-white);
+
+  --fs-bg-page:var(--fs-gradient-surface);
+  --fs-surface-panel:var(--fs-panel-fill);
+  --fs-surface-dark:var(--fs-navy);
+  --fs-surface-muted:var(--fs-steel);
+
+  --fs-border-panel:var(--fs-panel-edge);
+  --fs-border-rule:var(--fs-rule);
+
+  --fs-interactive-dark:var(--fs-gradient-navy-solid);
+  --fs-focus-ring:2px solid var(--fs-red);
+  --fs-focus-offset:2px;
+}
+
+/* ── Defaults de elemento (tokens/base.css + el <style> del documento) ── */
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fs-gradient-surface);
+  background-attachment: fixed;
+  color: var(--fs-text-default);
+  font-family: var(--fs-font);
+  font-size: 16px;
+  line-height: var(--fs-leading-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, p, strong, b, span, small, li, label, em,
+button, input, select, textarea { font-family: var(--fs-font); }
+
+a { color: var(--fs-navy); text-decoration-color: var(--fs-steel); text-decoration-thickness: 1px; text-underline-offset: 2px; transition: color var(--fs-duration) var(--fs-ease); }
+a:hover { color: var(--fs-red-deep); text-decoration-color: currentColor; }
+a:active { color: var(--fs-red); }
+:focus-visible { outline: var(--fs-focus-ring); outline-offset: var(--fs-focus-offset); }
+::selection { background: rgba(245,33,37,0.18); }
+strong, b { font-weight: var(--fs-weight-semibold); color: var(--fs-text-strong); }
+em { font-style: italic; }
+input::placeholder, textarea::placeholder { color: #8C97A8; font-weight: 400; }
+
+/* ── Cáscara de página ── */
+.page { min-height: 100vh; padding-bottom: 96px; }
+
+.topbar {
+  display: flex; align-items: center; gap: 20px;
+  padding: 22px max(28px, calc((100vw - 1180px) / 2));
+  border-bottom: 1px solid var(--fs-rule);
+}
+.topbar-id { border-left: 1px solid var(--fs-rule); padding-left: 20px; }
+.topbar-id strong { display: block; font-size: 14px; font-weight: 600; letter-spacing: .04em; color: var(--fs-navy); }
+.topbar-id span { display: block; font-size: 12px; color: var(--fs-ink-dim); margin-top: 2px; }
+.status-dot { margin-left: auto; display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--fs-ink-dim); }
+.status-dot i { width: 7px; height: 7px; border-radius: 999px; background: var(--fs-navy); box-shadow: 0 0 0 4px rgba(10,47,67,.10); }
+
+.hero { padding: 64px max(28px, calc((100vw - 1180px) / 2)) 8px; max-width: 1240px; margin: 0 auto; }
+.hero-heading { margin: 26px 0 20px; }
+.hero p { max-width: 52ch; margin: 0; font-size: 17px; line-height: 1.55; color: var(--fs-ink); }
+
+.progress-wrap { max-width: 460px; margin-top: 36px; }
+.progress-copy {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--fs-ink-dim); margin-bottom: 10px;
+}
+.progress-copy b { font-size: 15px; letter-spacing: 0; color: var(--fs-navy); }
+.progress { height: 6px; background: rgba(10,47,67,.10); border-radius: 999px; overflow: hidden; }
+.progress span { display: block; height: 100%; border-radius: 999px; background: var(--fs-gradient-navy); transition: width var(--fs-duration) var(--fs-ease); }
+
+.workspace {
+  max-width: 1240px; margin: 0 auto;
+  padding: 40px max(28px, calc((100vw - 1180px) / 2)) 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 32px; align-items: start;
+}
+.case-form { display: flex; flex-direction: column; gap: 22px; }
+
+/* ── Secciones del formulario (dentro del Panel) ── */
+.section-head { display: flex; gap: 16px; align-items: center; padding: 26px 30px 22px; }
+.section-head > span {
+  background: var(--fs-gradient-navy-solid); color: var(--fs-white); border-radius: 999px;
+  padding: 6px 15px; font-size: 12px; font-weight: 600; letter-spacing: .09em;
+}
+.section-head h2 { margin: 0 0 4px; font-size: 18px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--fs-navy); }
+.section-head p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--fs-ink-dim); }
+.section-body { border-top: 1px solid var(--fs-rule); padding: 26px 30px 30px; display: flex; flex-direction: column; gap: 22px; }
+
+.grid { display: grid; gap: 18px; }
+.grid.three { grid-template-columns: repeat(3, 1fr); }
+.grid.two { grid-template-columns: repeat(2, 1fr); }
+
+/* ── Campos ── */
+.field {
+  display: flex; flex-direction: column; gap: 9px;
+  font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fs-navy);
+}
+.field small {
+  text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 13px;
+  line-height: 1.45; color: var(--fs-ink-dim); margin-top: -4px;
+}
+.field input, .field select, .field textarea {
+  width: 100%; border: 1.5px solid var(--fs-panel-edge); border-radius: 16px;
+  padding: 13px 16px; background: rgba(255,255,255,.62); color: var(--fs-ink);
+  font-size: 15px; font-weight: 400; outline: none;
+}
+.field textarea { padding: 14px 16px; line-height: 1.55; min-height: 98px; resize: vertical; }
+.field textarea.large { min-height: 152px; }
+.field input:focus, .field select:focus, .field textarea:focus,
+.output:focus { outline: var(--fs-focus-ring); outline-offset: var(--fs-focus-offset); }
+
+/* ── Bloque de evidencias ── */
+.callout {
+  background: var(--fs-panel-fill); border: var(--fs-hairline);
+  border-radius: 20px; padding: 20px 22px;
+}
+.callout strong { display: block; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--fs-navy); }
+.callout p { margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: var(--fs-ink); }
+
+.error {
+  margin: -10px 0 0; padding: 12px 16px; border-radius: 16px;
+  background: rgba(245,33,37,.08); border: 1px solid rgba(245,33,37,.35);
+  color: var(--fs-red-deep); font-size: 13px; line-height: 1.5;
+}
+
+.check { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--fs-ink); cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: #0A2F43; }
+
+/* ── Botones ── */
+.cta {
+  border: 0; color: var(--fs-white); border-radius: 999px; padding: 18px 28px;
+  font-size: 14px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 14px;
+  transition: filter var(--fs-duration) var(--fs-ease);
+}
+.cta:hover { filter: brightness(1.09); }
+.cta:active { filter: brightness(.94); }
+.cta.compact { padding: 14px 24px; font-size: 13px; letter-spacing: .08em; }
+
+.secondary {
+  border: var(--fs-hairline); background: rgba(255,255,255,.55); border-radius: 999px;
+  padding: 14px 22px; font-size: 13px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--fs-navy); cursor: pointer;
+  transition: filter var(--fs-duration) var(--fs-ease);
+}
+.secondary:hover { filter: brightness(1.09); }
+
+/* ── Columna lateral ── */
+.side { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 18px; }
+.side-card { background: var(--fs-navy); border-radius: var(--fs-radius-panel); padding: 28px; box-shadow: var(--fs-shadow-panel); }
+.side-label { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #A8B4C4; }
+.side-card h3 { margin: 14px 0 26px; font-size: 23px; font-weight: 400; line-height: 1.15; color: var(--fs-white); }
+.side-card h3 b { font-weight: 700; color: var(--fs-white); }
+.side-card ul { padding: 0; margin: 0; list-style: none; display: flex; flex-direction: column; gap: 16px; }
+.side-card li { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #A8B4C4; }
+.side-card li span {
+  width: 26px; height: 26px; flex: 0 0 26px; border-radius: 999px;
+  display: grid; place-items: center; font-size: 11px; font-weight: 600;
+  border: 1px solid rgba(255,255,255,.28); background: transparent; color: #A8B4C4;
+}
+.side-card li.done { color: var(--fs-white); }
+.side-card li.done span { border-color: var(--fs-white); background: var(--fs-white); color: var(--fs-navy); }
+.readiness {
+  margin-top: 26px; border-top: 1px solid rgba(255,255,255,.16); padding-top: 20px;
+  font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #A8B4C4;
+}
+.readiness.ready { color: var(--fs-white); }
+
+.tip { background: var(--fs-panel-fill); border: var(--fs-hairline); border-radius: 20px; padding: 22px; }
+.tip b { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--fs-navy); }
+.tip p { margin: 10px 0 0; font-size: 14px; line-height: 1.55; color: var(--fs-ink); }
+
+/* Claim — Montserrat Italic en tinta, alineado a la derecha. */
+.claim { margin: 2px 4px 0; font-style: italic; text-align: right; font-size: 14px; line-height: 1.5; color: var(--fs-ink-dim); }
+
+/* ── Vista previa ── */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(10,47,67,.72); z-index: 30; display: grid; place-items: center; padding: 24px; }
+.modal {
+  width: min(840px, 100%); max-height: 92vh;
+  background: linear-gradient(160deg, #E4E5E9 0%, #D7D8DD 60%, #C9D2DE 100%);
+  border: var(--fs-hairline); border-radius: var(--fs-radius-panel); padding: 34px;
+  position: relative; display: flex; flex-direction: column;
+  box-shadow: 0 30px 90px rgba(10,47,67,.35);
+}
+.modal .side-label { color: var(--fs-ink-dim); }
+.modal-heading { margin: 14px 0 20px; }
+.close {
+  position: absolute; right: 22px; top: 22px; border: 1px solid var(--fs-rule);
+  background: rgba(255,255,255,.6); width: 36px; height: 36px; border-radius: 999px;
+  font-size: 20px; line-height: 1; cursor: pointer; color: var(--fs-navy);
+}
+.warning {
+  background: rgba(245,33,37,.08); border: 1px solid rgba(245,33,37,.35); color: var(--fs-red-deep);
+  border-radius: 16px; padding: 13px 16px; font-size: 13px; line-height: 1.5; margin-bottom: 16px;
+}
+.output {
+  width: 100%; min-height: 380px; max-height: 50vh; resize: vertical;
+  border: var(--fs-hairline); background: rgba(255,255,255,.62); border-radius: 20px;
+  padding: 20px; font-size: 13px; font-weight: 400; line-height: 1.6; color: var(--fs-ink); outline: none;
+}
+.modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 18px; }
+
+/* ── Adaptación a viewports chicos.
+   El documento de diseño está trazado para desktop y no declara breakpoints;
+   estas reglas solo repliegan la retícula sin tocar el vocabulario visual. ── */
+@media (max-width: 980px) {
+  .workspace { grid-template-columns: 1fr; }
+  .side { position: static; order: -1; }
+  .side-card ul { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .claim { text-align: left; }
+  .grid.three { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+  .topbar { padding: 16px; gap: 14px; }
+  .status-dot { display: none; }
+  .hero { padding: 40px 20px 8px; }
+  .workspace { padding: 28px 16px 0; }
+  .section-head, .section-body { padding: 20px; }
+  .section-body { padding-top: 22px; }
+  .grid.three, .grid.two { grid-template-columns: 1fr; }
+  .side-card ul { grid-template-columns: 1fr; }
+  .modal { padding: 24px 18px; }
+  .modal-actions { flex-direction: column; }
+  .modal-actions button { width: 100%; }
+}
