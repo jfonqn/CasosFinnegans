@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Lockup, PairedHeading, Panel, SectionPill } from "./fisterra";
+import { ACCEPTED_IMAGE_TYPES, buildCaseDocx, caseFileName, type CaseDoc } from "./docx";
 
 type CaseData = {
   caseNumber: string;
@@ -9,14 +10,19 @@ type CaseData = {
   domain: string;
   client: string;
   author: string;
+  company: string;
   dedicatedServer: string;
   priority: string;
   title: string;
+  finni: string;
   whatFails: string;
   whatHappens: string;
   firstTime: string;
   standardOperation: string;
+  impact: string;
+  workaround: string;
   steps: string;
+  reportFormat: string;
   attempts: string;
   expected: string;
   evidence: string;
@@ -31,14 +37,19 @@ const initialData: CaseData = {
   domain: "",
   client: "",
   author: "",
+  company: "",
   dedicatedServer: "No",
   priority: "Media",
   title: "",
+  finni: "",
   whatFails: "",
   whatHappens: "",
   firstTime: "No",
   standardOperation: "Sí",
+  impact: "",
+  workaround: "",
   steps: "",
+  reportFormat: "",
   attempts: "",
   expected: "",
   evidence: "",
@@ -60,16 +71,36 @@ const ctaBg = CTA_BG[CTA_TONE];
 
 const drivePattern = /^https?:\/\/(drive|docs)\.google\.com\//i;
 
+/* Colapsa espacios horizontales pero conserva los saltos de línea: los pasos del
+   caso de uso pierden todo su sentido si se aplanan en un párrafo. */
+function tidy(text: string) {
+  return text
+    .split("\n")
+    .map((line) => line.replace(/[^\S\n]+/g, " ").trim())
+    .join("\n")
+    .trim();
+}
+
 function clean(text: string) {
-  const value = text.trim();
+  const value = tidy(text);
   if (!value) return "Pendiente de completar";
-  return value.charAt(0).toUpperCase() + value.slice(1).replace(/\s+/g, " ");
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+/* Igual que clean(), pero para campos que la plantilla permite dejar vacíos. */
+function cleanOptional(text: string) {
+  const value = tidy(text);
+  if (!value) return "";
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 export default function Home() {
   const [data, setData] = useState(initialData);
+  const [images, setImages] = useState<File[]>([]);
   const [copied, setCopied] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [building, setBuilding] = useState(false);
+  const [docxError, setDocxError] = useState<string | null>(null);
 
   const update = <K extends keyof CaseData>(key: K, value: CaseData[K]) =>
     setData((current) => ({ ...current, [key]: value }));
@@ -87,6 +118,7 @@ export default function Home() {
     data.title,
     data.whatFails,
     data.whatHappens,
+    data.impact,
     data.steps,
     data.expected,
   ];
@@ -97,19 +129,23 @@ export default function Home() {
     const evidenceText = driveLinks.length
       ? driveLinks.map((link, index) => `- Evidencia ${index + 1}: ${link}`).join("\n")
       : "- Pendiente: cargar evidencia en Google Drive y agregar el enlace";
+    const optional = (label: string, value: string) => {
+      const text = cleanOptional(value);
+      return text ? `\n\n${label}\n${text}` : "";
+    };
 
-    return `BUG / PROBLEMA REPORTADO
+    return `BUGS / PROBLEMAS REPORTADOS
 
 N° de caso: ${data.caseNumber || "A completar por Finnegans"}
-Fecha de ingreso: ${data.date}
+Fecha de Ingreso: ${data.date}
 Dominio: ${clean(data.domain)}
 Cliente: ${clean(data.client)}
 Redactor: ${clean(data.author)}
-Servidor propio / dedicado: ${data.dedicatedServer}
-Prioridad del caso: ${data.priority}
+Servidor propio / dedicado: ${data.dedicatedServer.toUpperCase()}
+Prioridad del Caso: ${data.priority}${data.company.trim() ? `\nEmpresa / sucursal: ${tidy(data.company)}` : ""}
 
-TÍTULO
-${clean(data.title)}
+TÍTULO DEL CASO
+${clean(data.title)}${optional("PEGAR RESPUESTA Y PROMT DE FINNI", data.finni)}
 
 PROBLEMA
 
@@ -125,22 +161,29 @@ ${data.firstTime}
 ¿Es una operación estándar?
 ${data.standardOperation}
 
-CASO DE USO / PASOS PARA REPRODUCIR
-${clean(data.steps)}
+SITUACIÓN ACTUAL
+${clean(data.impact)}${data.workaround.trim() ? `\nContingencia manual: ${tidy(data.workaround)}` : ""}
 
-PRUEBAS O SOLUCIONES INTENTADAS
-${clean(data.attempts)}
-
-RESULTADO ESPERADO
-${clean(data.expected)}
+CASO DE USO
+${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe: ${tidy(data.reportFormat)}` : ""}${
+      images.length ? `\n${images.length} captura(s) se incrustan en el .docx.` : ""
+    }${optional("PRUEBAS O SOLUCIONES INTENTADAS", data.attempts)}${optional("RESULTADO ESPERADO", data.expected)}
 
 EVIDENCIAS EN GOOGLE DRIVE
 ${evidenceText}
 Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de confirmar"}`;
-  }, [data, driveLinks]);
+  }, [data, driveLinks, images]);
 
   const evidenceOk = driveLinks.length > 0 && invalidLinks.length === 0;
   const ready = progress === 100 && evidenceOk && data.accessConfirmed;
+
+  function addImages(files: FileList | null) {
+    if (!files?.length) return;
+    /* Copiamos acá y no dentro del updater: el handler limpia el input apenas
+       termina y React ejecuta el updater después, cuando el FileList ya está vacío. */
+    const picked = Array.from(files);
+    setImages((current) => [...current, ...picked]);
+  }
 
   async function copyCase() {
     try {
@@ -150,6 +193,27 @@ Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de c
     }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
+  }
+
+  async function downloadDocx() {
+    setBuilding(true);
+    setDocxError(null);
+    try {
+      const payload: CaseDoc = { ...data, driveLinks, images };
+      const blob = await buildCaseDocx(payload);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = caseFileName(data);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (error) {
+      setDocxError(error instanceof Error ? error.message : "No se pudo generar el documento.");
+    } finally {
+      setBuilding(false);
+    }
   }
 
   return (
@@ -173,7 +237,7 @@ Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de c
             size="clamp(32px,4.4vw,52px)"
           />
         </div>
-        <p>Completá la información esencial y obtené un caso claro, verificable y listo para enviar a soporte.</p>
+        <p>Completá la información esencial y descargá el documento de Finnegans ya armado, listo para enviar a soporte.</p>
         <div className="progress-wrap" aria-label={`Progreso ${progress}%`}>
           <div className="progress-copy"><span>Progreso del caso</span><b>{progress}%</b></div>
           <div className="progress"><span style={{ width: `${progress}%` }} /></div>
@@ -193,41 +257,75 @@ Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de c
               <Field label="Servidor propio / dedicado"><Select value={data.dedicatedServer} onChange={(v) => update("dedicatedServer", v)} options={["No", "Sí"]} /></Field>
               <Field label="Prioridad"><Select value={data.priority} onChange={(v) => update("priority", v)} options={["Baja", "Media", "Alta", "Crítica"]} /></Field>
             </div>
+            <Field label="Empresa / sucursal" hint="La plantilla pide identificarla cuando el problema depende del contexto.">
+              <input placeholder="Empresa y sucursal donde se reproduce" value={data.company} onChange={(e) => update("company", e.target.value)} />
+            </Field>
           </Section>
 
-          <Section number="02" title="Descripción del problema" note="Usá lenguaje concreto. No es necesario conocer términos técnicos.">
+          <Section number="02" title="Consulta a Finni" note="Si ya consultaste a Finni, pegá acá el prompt y su respuesta.">
+            <Field label="Prompt y respuesta de Finni" hint="Opcional. Evita que soporte repita un camino ya recorrido.">
+              <textarea placeholder="Pegá la consulta que hiciste y lo que respondió." value={data.finni} onChange={(e) => update("finni", e.target.value)} />
+            </Field>
+          </Section>
+
+          <Section number="03" title="Descripción del problema" note="Usá lenguaje concreto. No es necesario conocer términos técnicos.">
             <Field label="Título breve del caso *" hint="Ejemplo: El plan de ventas no permite distribuir por centro de costo">
               <input placeholder="Resumen del problema en una línea" value={data.title} onChange={(e) => update("title", e.target.value)} />
             </Field>
             <Field label="¿Qué no funciona? *">
               <textarea placeholder="Indicá la pantalla, proceso u operación afectada." value={data.whatFails} onChange={(e) => update("whatFails", e.target.value)} />
             </Field>
-            <Field label="¿Qué sucede cuando intentás hacerlo? *">
+            <Field label="¿Qué es lo que pasa? *">
               <textarea placeholder="Describí el mensaje, bloqueo o resultado obtenido." value={data.whatHappens} onChange={(e) => update("whatHappens", e.target.value)} />
             </Field>
             <div className="grid two">
-              <Field label="¿Es la primera vez que hacés la transacción?"><Select value={data.firstTime} onChange={(v) => update("firstTime", v)} options={["No", "Sí", "No sé"]} /></Field>
+              <Field label="¿Es la primera vez que hace la transacción?"><Select value={data.firstTime} onChange={(v) => update("firstTime", v)} options={["No", "Sí", "No sé"]} /></Field>
               <Field label="¿Es una operación estándar?"><Select value={data.standardOperation} onChange={(v) => update("standardOperation", v)} options={["Sí", "No", "No sé"]} /></Field>
             </div>
           </Section>
 
-          <Section number="03" title="Reproducción y resultado" note="Estos datos ayudan a soporte a repetir el error sin pedir aclaraciones.">
+          <Section number="04" title="Situación actual" note="Qué impacto tiene hoy el cliente mientras el problema sigue abierto.">
+            <Field label="Impacto en el cliente *">
+              <textarea placeholder="Qué no puede hacer, desde cuándo y a cuánta gente u operación afecta." value={data.impact} onChange={(e) => update("impact", e.target.value)} />
+            </Field>
+            <Field label="¿Tiene alguna contingencia manual?" hint="Opcional. Si hay un rodeo temporal, contalo acá.">
+              <textarea placeholder="Ej. se cargan los partes en una planilla aparte." value={data.workaround} onChange={(e) => update("workaround", e.target.value)} />
+            </Field>
+          </Section>
+
+          <Section number="05" title="Caso de uso y resultado" note="Estos datos ayudan a soporte a repetir el error sin pedir aclaraciones.">
             <Field label="Pasos para reproducir el problema *" hint="Incluí empresa, menú, datos cargados y momento exacto del error.">
               <textarea className="large" placeholder={"1. Ingresar a…\n2. Seleccionar…\n3. Cargar…\n4. Guardar…"} value={data.steps} onChange={(e) => update("steps", e.target.value)} />
+            </Field>
+            <Field label="Formato de grilla o informe" hint="Opcional. Solo si el problema aparece en una grilla o un informe.">
+              <input placeholder="Nombre del formato que usa el cliente" value={data.reportFormat} onChange={(e) => update("reportFormat", e.target.value)} />
             </Field>
             <Field label="¿Qué soluciones o pruebas ya se intentaron?">
               <textarea placeholder="Indicá cambios de configuración, pruebas y sus resultados." value={data.attempts} onChange={(e) => update("attempts", e.target.value)} />
             </Field>
-            <Field label="Resultado esperado *">
+            <Field label="Resultado esperado *" hint="Si no sabés qué debería dar, la plantilla permite dejarlo vacío.">
               <textarea placeholder="Explicá qué debería permitir hacer el sistema." value={data.expected} onChange={(e) => update("expected", e.target.value)} />
             </Field>
           </Section>
 
-          <Section number="04" title="Evidencias en Google Drive" note="Finnegans recibe enlaces; no adjuntes archivos físicos.">
+          <Section number="06" title="Evidencias" note="Las capturas se incrustan en el documento; lo pesado va por Drive.">
             <div className="callout">
               <strong>Antes de continuar</strong>
-              <p>Subí capturas, videos o documentos a Drive y habilitá el acceso para las personas que recibirán el caso.</p>
+              <p>Subí videos y archivos grandes a Drive y habilitá el acceso para las personas que recibirán el caso. Las capturas de pantalla podés incrustarlas directamente en el documento.</p>
             </div>
+            <Field label="Capturas para incrustar en el .docx" hint="PNG, JPG o GIF. Se insertan dentro de «Caso de uso».">
+              <input type="file" accept={ACCEPTED_IMAGE_TYPES} multiple onChange={(e) => { addImages(e.target.files); e.target.value = ""; }} />
+            </Field>
+            {images.length > 0 && (
+              <ul className="filelist">
+                {images.map((file, index) => (
+                  <li key={`${file.name}-${index}`}>
+                    <span>{file.name}</span>
+                    <button type="button" onClick={() => setImages((current) => current.filter((_, i) => i !== index))}>Quitar</button>
+                  </li>
+                ))}
+              </ul>
+            )}
             <Field label="Enlaces de Google Drive" hint="Pegá un enlace por línea.">
               <textarea placeholder={"https://drive.google.com/…\nhttps://docs.google.com/…"} value={data.evidence} onChange={(e) => update("evidence", e.target.value)} />
             </Field>
@@ -264,9 +362,13 @@ Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de c
             </div>
             {!ready && <div className="warning">El borrador fue generado, pero todavía hay información o evidencias pendientes.</div>}
             <textarea className="output" value={output} onChange={() => {}} readOnly />
+            {docxError && <p className="error">{docxError}</p>}
             <div className="modal-actions">
               <button className="secondary" onClick={() => setShowPreview(false)}>Volver a editar</button>
-              <button className="cta compact" onClick={copyCase} style={{ background: ctaBg }}>{copied ? "¡Copiado!" : "Copiar caso completo"}</button>
+              <button className="secondary" onClick={copyCase}>{copied ? "¡Copiado!" : "Copiar texto"}</button>
+              <button className="cta compact" onClick={downloadDocx} disabled={building} style={{ background: ctaBg }}>
+                {building ? "Generando…" : "Descargar .docx"}
+              </button>
             </div>
           </div>
         </div>

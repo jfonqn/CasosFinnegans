@@ -18,6 +18,31 @@ npm run build
 
 This starter does not use `wrangler.jsonc`.
 
+## El documento de Finnegans
+
+La app no devuelve sólo texto: genera el `.docx` de "BUGS / PROBLEMAS
+REPORTADOS" que soporte usa hoy.
+
+No lo dibujamos desde cero. `app/docx.ts` toma la plantilla real
+(`public/plantilla-finnegans.docx`), reemplaza únicamente el cuerpo de
+`word/document.xml` y vuelve a comprimir el paquete. Todo el resto —estilos,
+numeración, cabecera con la marca, pie y las 16 tipografías embebidas— se copia
+sin tocar, así que lo generado es indistinguible de un documento escrito a mano
+sobre la plantilla.
+
+Sobre esa base el generador agrega:
+
+- las capturas que sube el usuario, incrustadas dentro de "Caso de uso" y
+  reescaladas al ancho útil de la caja de texto sin deformarlas;
+- los enlaces de Drive como hipervínculos reales (`TargetMode="External"`);
+- dos secciones que la plantilla no pide pero que a soporte le sirven: el título
+  del caso y las pruebas ya intentadas.
+
+Si Finnegans publica una versión nueva de la plantilla, reemplazá el archivo de
+`public/` y corré `npm run test:docx`. Ese test corre el código de producción
+contra la plantilla real y verifica que sigan estando los estilos, el `sectPr`
+que engancha cabecera y pie, y todas las relaciones que el documento referencia.
+
 ## Deploy targets
 
 El código de `app/` es Next.js App Router estándar, así que el proyecto compila
@@ -114,6 +139,7 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `npm run dev`: start local development
 - `npm run build`: verify the vinext build output
 - `npm test`: build the starter and verify its rendered loading skeleton
+- `npm run test:docx`: verificar el .docx generado contra la plantilla real
 - `npm run db:generate`: generate Drizzle migrations after schema changes
 
 ## Learn More

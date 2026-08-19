@@ -234,6 +234,30 @@ input::placeholder, textarea::placeholder { color: #8C97A8; font-weight: 400; }
 .check { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--fs-ink); cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: #0A2F43; }
 
+/* El selector de archivos nativo no acepta los tokens del panel, así que sólo
+   alineamos su botón interno con el resto de los controles. */
+.field input[type="file"] { padding: 10px 12px; font-size: 14px; cursor: pointer; }
+.field input[type="file"]::file-selector-button {
+  margin-right: 14px; border: var(--fs-hairline); border-radius: 999px;
+  padding: 8px 16px; background: rgba(255,255,255,.72); color: var(--fs-navy);
+  font-family: inherit; font-size: 12px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; cursor: pointer;
+}
+
+.filelist { list-style: none; margin: -8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.filelist li {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  background: var(--fs-panel-fill); border: var(--fs-hairline); border-radius: 14px;
+  padding: 10px 12px 10px 16px; font-size: 14px; color: var(--fs-ink);
+}
+.filelist li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filelist li button {
+  flex: none; border: 0; background: none; padding: 4px 6px; cursor: pointer;
+  font-family: inherit; font-size: 11px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--fs-red-deep);
+}
+.filelist li button:hover { text-decoration: underline; }
+
 /* ── Botones ── */
 .cta {
   border: 0; color: var(--fs-white); border-radius: 999px; padding: 18px 28px;
@@ -243,6 +267,7 @@ input::placeholder, textarea::placeholder { color: #8C97A8; font-weight: 400; }
 }
 .cta:hover { filter: brightness(1.09); }
 .cta:active { filter: brightness(.94); }
+.cta:disabled { filter: saturate(.35) brightness(1.15); cursor: progress; }
 .cta.compact { padding: 14px 24px; font-size: 13px; letter-spacing: .08em; }
 
 .secondary {
