@@ -61,17 +61,27 @@ function esc(value: string) {
     .replace(/"/g, "&quot;");
 }
 
+/* Los estilos de la plantilla traen cuerpos enormes (Title = 48pt) y el documento
+   los pisa run por run. Sin replicar ese override los títulos tapan la página. */
+const SIZE_DOC_TITLE = 34; // 17pt — "BUGS / PROBLEMAS REPORTADOS"
+const SIZE_CASE_TITLE = 60; // 30pt — "N° de caso"
+const SIZE_HEADER_LINE = 36; // 18pt — las líneas sueltas del encabezado
+
+type RunOptions = { bold?: boolean; link?: boolean; size?: number };
+
 /* La plantilla fija Poppins y el gris 434343 en cada run, no sólo en el estilo.
-   Replicamos ese rPr para que lo generado sea indistinguible de lo escrito a mano. */
-function rpr(options?: { bold?: boolean; link?: boolean }) {
+   Replicamos ese rPr para que lo generado sea indistinguible de lo escrito a mano.
+   El orden de los hijos es el que exige el esquema CT_RPr. */
+function rpr(options?: RunOptions) {
   let out = '<w:rPr><w:rFonts w:ascii="Poppins" w:cs="Poppins" w:eastAsia="Poppins" w:hAnsi="Poppins"/>';
   if (options?.bold) out += "<w:b/>";
   out += `<w:color w:val="${options?.link ? "1155CC" : "434343"}"/>`;
+  if (options?.size) out += `<w:sz w:val="${options.size}"/><w:szCs w:val="${options.size}"/>`;
   if (options?.link) out += '<w:u w:val="single"/>';
   return out + '<w:rtl w:val="0"/></w:rPr>';
 }
 
-function run(text: string, options?: { bold?: boolean; link?: boolean }) {
+function run(text: string, options?: RunOptions) {
   return `<w:r>${rpr(options)}<w:t xml:space="preserve">${esc(text)}</w:t></w:r>`;
 }
 
@@ -79,19 +89,21 @@ function listProps() {
   return '<w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr><w:ind w:left="720" w:hanging="360"/>';
 }
 
-function para(runs: string, style?: string, numbered = false) {
+function para(runs: string, options?: { style?: string; numbered?: boolean; size?: number }) {
   let props = "<w:pPr>";
-  if (style) props += `<w:pStyle w:val="${style}"/>`;
-  if (numbered) props += listProps();
-  props += rpr() + "</w:pPr>";
+  if (options?.style) props += `<w:pStyle w:val="${options.style}"/>`;
+  if (options?.numbered) props += listProps();
+  /* El rPr del pPr aplica a la marca de párrafo: si no lleva el mismo cuerpo,
+     el interlineado queda calculado sobre el tamaño del estilo. */
+  props += rpr({ size: options?.size }) + "</w:pPr>";
   return `<w:p>${props}${runs}</w:p>`;
 }
 
-const title = (text: string) => para(run(text), "Title");
-const subtitle = (text: string) => para(run(text), "Subtitle");
-const heading = (text: string) => para(run(text), "Heading4");
-const normal = (text: string) => para(text ? run(text) : "");
-const bullet = (label: string, value: string) => para(run(label, { bold: true }) + run(value), undefined, true);
+const title = (text: string, size: number) => para(run(text, { size }), { style: "Title", size });
+const subtitle = (text: string) => para(run(text), { style: "Subtitle" });
+const heading = (text: string) => para(run(text), { style: "Heading4" });
+const normal = (text: string, size?: number) => para(text ? run(text, { size }) : "", { size });
+const bullet = (label: string, value: string) => para(run(label, { bold: true }) + run(value), { numbered: true });
 const labeled = (label: string, value: string) => para(run(label, { bold: true }) + run(value));
 
 /* Un párrafo por línea: el .docx tiene que respetar los saltos que escribió el
@@ -190,16 +202,19 @@ const PENDING = "Pendiente de completar";
 function buildBody(data: CaseDoc, images: PreparedImage[], linkRels: string[]) {
   const parts: string[] = [];
 
-  parts.push(title("BUGS / PROBLEMAS REPORTADOS"));
+  parts.push(title("BUGS / PROBLEMAS REPORTADOS", SIZE_DOC_TITLE));
   parts.push(subtitle(""));
-  parts.push(title(`N° de caso: ${data.caseNumber.trim() || "A completar por Finnegans"}`));
+  /* Sin número, dejamos el rótulo solo, como viene en la plantilla: es Finnegans
+     quien lo completa. Además evita que el título de 30pt se parta en tres líneas. */
+  const caseNumber = data.caseNumber.trim();
+  parts.push(title(caseNumber ? `N° de caso: ${caseNumber}` : "N° de caso", SIZE_CASE_TITLE));
   parts.push(subtitle(`Fecha de Ingreso: ${data.date}`));
   parts.push(subtitle(`Dominio: ${data.domain.trim() || PENDING}`));
   parts.push(subtitle(`Cliente: ${data.client.trim() || PENDING}`));
   parts.push(subtitle(`Redactor: ${data.author.trim() || PENDING}`));
-  parts.push(normal(`Servidor propio / dedicado: ${data.dedicatedServer.toUpperCase()}`));
-  parts.push(normal(`Prioridad del Caso: ${data.priority}`));
-  if (data.company.trim()) parts.push(normal(`Empresa / sucursal: ${data.company.trim()}`));
+  parts.push(normal(`Servidor propio / dedicado: ${data.dedicatedServer.toUpperCase()}`, SIZE_HEADER_LINE));
+  parts.push(normal(`Prioridad del Caso: ${data.priority}`, SIZE_HEADER_LINE));
+  if (data.company.trim()) parts.push(normal(`Empresa / sucursal: ${data.company.trim()}`, SIZE_HEADER_LINE));
   parts.push(normal(""));
 
   parts.push(heading("Título del caso"));
@@ -233,13 +248,13 @@ function buildBody(data: CaseDoc, images: PreparedImage[], linkRels: string[]) {
   parts.push(heading("Resultado esperado"));
   parts.push(block(data.expected));
 
-  parts.push(heading("Evidencias en Google Drive"));
+  /* Los enlaces de Drive son opcionales: si no hay ninguno, la sección no se
+     escribe. Un "pendiente" en un documento que ya se envía es sólo ruido. */
   if (data.driveLinks.length) {
+    parts.push(heading("Evidencias en Google Drive"));
     data.driveLinks.forEach((link, index) => parts.push(hyperlink(linkRels[index], link)));
-  } else {
-    parts.push(normal("Pendiente: cargar evidencia en Google Drive y agregar el enlace"));
+    parts.push(normal(`Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de confirmar"}`));
   }
-  parts.push(normal(`Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de confirmar"}`));
 
   return parts.join("");
 }

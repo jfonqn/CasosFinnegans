@@ -293,6 +293,12 @@ input::placeholder, textarea::placeholder { color: #8C97A8; font-weight: 400; }
 }
 .side-card li.done { color: var(--fs-white); }
 .side-card li.done span { border-color: var(--fs-white); background: var(--fs-white); color: var(--fs-navy); }
+/* Marca de "opcional": no compite con el texto del punto. */
+.side-card li em {
+  font-style: normal; font-size: 10px; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; color: #A8B4C4; opacity: .72;
+  border: 1px solid rgba(255,255,255,.22); border-radius: 999px; padding: 2px 7px;
+}
 .readiness {
   margin-top: 26px; border-top: 1px solid rgba(255,255,255,.16); padding-top: 20px;
   font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #A8B4C4;

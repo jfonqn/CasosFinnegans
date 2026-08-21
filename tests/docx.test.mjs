@@ -127,6 +127,29 @@ test("embebe las imágenes y las escala al ancho útil", () => {
   assert.deepEqual(extents[1], [420 * 9525, 260 * 9525]);
 });
 
+test("pisa el cuerpo de los títulos como hace la plantilla", () => {
+  /* Los estilos traen Title=48pt: sin override el encabezado ocupa media página. */
+  const sized = (text) => {
+    const at = doc.indexOf(`>${text}</w:t>`);
+    const open = doc.lastIndexOf("<w:r>", at);
+    return doc.slice(open, at).match(/<w:sz w:val="(\d+)"\/>/)?.[1] ?? null;
+  };
+  assert.equal(sized("BUGS / PROBLEMAS REPORTADOS"), "34");
+  assert.equal(sized("N° de caso"), "60");
+  assert.equal(sized("Servidor propio / dedicado: SÍ"), "36");
+  /* Subtítulos y Heading4 sí usan el cuerpo del estilo, como en la plantilla. */
+  assert.equal(sized("Fecha de Ingreso: 19/8/2026"), null);
+  assert.equal(sized("Situación actual"), null);
+});
+
+test("omite las evidencias de Drive cuando no hay enlaces", async () => {
+  const sinDrive = await buildCaseDocx({ ...data, driveLinks: [], accessConfirmed: false, images: [] });
+  const xml = strFromU8(unzipSync(new Uint8Array(await sinDrive.arrayBuffer()))["word/document.xml"]);
+  assert.ok(!xml.includes("Evidencias en Google Drive"), "no debe escribir la sección vacía");
+  assert.ok(!xml.includes("Acceso verificado para soporte"));
+  assert.ok(xml.includes(">Resultado esperado</w:t>"), "el resto del documento sigue intacto");
+});
+
 test("declara toda relación que referencia", () => {
   const declared = new Set([...rels.matchAll(/Id="([^"]+)"/g)].map((m) => m[1]));
   const used = new Set([...doc.matchAll(/r:(?:id|embed)="([^"]+)"/g)].map((m) => m[1]));

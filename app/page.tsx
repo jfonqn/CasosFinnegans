@@ -126,9 +126,12 @@ export default function Home() {
   const progress = Math.round((completed / required.length) * 100);
 
   const output = useMemo(() => {
-    const evidenceText = driveLinks.length
-      ? driveLinks.map((link, index) => `- Evidencia ${index + 1}: ${link}`).join("\n")
-      : "- Pendiente: cargar evidencia en Google Drive y agregar el enlace";
+    /* Sin enlaces no se escribe la sección: las evidencias en Drive son opcionales. */
+    const evidenceBlock = driveLinks.length
+      ? `\n\nEVIDENCIAS EN GOOGLE DRIVE\n${driveLinks
+          .map((link, index) => `- Evidencia ${index + 1}: ${link}`)
+          .join("\n")}\nAcceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de confirmar"}`
+      : "";
     const optional = (label: string, value: string) => {
       const text = cleanOptional(value);
       return text ? `\n\n${label}\n${text}` : "";
@@ -167,15 +170,19 @@ ${clean(data.impact)}${data.workaround.trim() ? `\nContingencia manual: ${tidy(d
 CASO DE USO
 ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe: ${tidy(data.reportFormat)}` : ""}${
       images.length ? `\n${images.length} captura(s) se incrustan en el .docx.` : ""
-    }${optional("PRUEBAS O SOLUCIONES INTENTADAS", data.attempts)}${optional("RESULTADO ESPERADO", data.expected)}
-
-EVIDENCIAS EN GOOGLE DRIVE
-${evidenceText}
-Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de confirmar"}`;
+    }${optional("PRUEBAS O SOLUCIONES INTENTADAS", data.attempts)}${optional("RESULTADO ESPERADO", data.expected)}${evidenceBlock}`;
   }, [data, driveLinks, images]);
 
-  const evidenceOk = driveLinks.length > 0 && invalidLinks.length === 0;
-  const ready = progress === 100 && evidenceOk && data.accessConfirmed;
+  /* Las evidencias son opcionales: sólo frenan el caso si los enlaces están mal
+     escritos, porque ahí soporte se va a encontrar con un link que no abre. */
+  const linksOk = invalidLinks.length === 0;
+  const hasEvidence = driveLinks.length > 0 || images.length > 0;
+  const ready = progress === 100 && linksOk;
+  const readiness = !linksOk
+    ? "Revisá los enlaces de Drive"
+    : ready
+      ? "Caso listo para enviar"
+      : "Completá los datos obligatorios";
 
   function addImages(files: FileList | null) {
     if (!files?.length) return;
@@ -308,12 +315,12 @@ Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de c
             </Field>
           </Section>
 
-          <Section number="06" title="Evidencias" note="Las capturas se incrustan en el documento; lo pesado va por Drive.">
+          <Section number="06" title="Evidencias" note="Opcional. Las capturas se incrustan en el documento; lo pesado va por Drive.">
             <div className="callout">
-              <strong>Antes de continuar</strong>
-              <p>Subí videos y archivos grandes a Drive y habilitá el acceso para las personas que recibirán el caso. Las capturas de pantalla podés incrustarlas directamente en el documento.</p>
+              <strong>Nada de esto es obligatorio</strong>
+              <p>Las capturas de pantalla se incrustan directamente en el documento. Para videos o archivos grandes conviene Drive: subilos ahí y habilitá el acceso para quienes reciban el caso.</p>
             </div>
-            <Field label="Capturas para incrustar en el .docx" hint="PNG, JPG o GIF. Se insertan dentro de «Caso de uso».">
+            <Field label="Capturas para incrustar en el .docx" hint="Opcional. PNG, JPG o GIF. Se insertan dentro de «Caso de uso».">
               <input type="file" accept={ACCEPTED_IMAGE_TYPES} multiple onChange={(e) => { addImages(e.target.files); e.target.value = ""; }} />
             </Field>
             {images.length > 0 && (
@@ -326,11 +333,14 @@ Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de c
                 ))}
               </ul>
             )}
-            <Field label="Enlaces de Google Drive" hint="Pegá un enlace por línea.">
+            <Field label="Enlaces de Google Drive" hint="Opcional. Pegá un enlace por línea.">
               <textarea placeholder={"https://drive.google.com/…\nhttps://docs.google.com/…"} value={data.evidence} onChange={(e) => update("evidence", e.target.value)} />
             </Field>
             {invalidLinks.length > 0 && <p className="error">Revisá los enlaces: todos deben pertenecer a Google Drive o Google Docs.</p>}
-            <label className="check"><input type="checkbox" checked={data.accessConfirmed} onChange={(e) => update("accessConfirmed", e.target.checked)} /><span>Confirmo que soporte puede abrir todos los enlaces</span></label>
+            {/* Sin enlaces no hay permisos que confirmar. */}
+            {driveLinks.length > 0 && (
+              <label className="check"><input type="checkbox" checked={data.accessConfirmed} onChange={(e) => update("accessConfirmed", e.target.checked)} /><span>Confirmo que soporte puede abrir todos los enlaces</span></label>
+            )}
           </Section>
 
           <button className="cta" type="submit" style={{ background: ctaBg }}>Revisar y generar caso</button>
@@ -342,10 +352,12 @@ Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de c
             <h3>Un buen caso acelera<br /><b>la solución.</b></h3>
             <ul>
               <li className={progress === 100 ? "done" : ""}><span>{progress === 100 ? "✓" : "1"}</span>Datos obligatorios completos</li>
-              <li className={evidenceOk ? "done" : ""}><span>{evidenceOk ? "✓" : "2"}</span>Evidencias enlazadas</li>
-              <li className={data.accessConfirmed ? "done" : ""}><span>{data.accessConfirmed ? "✓" : "3"}</span>Permisos confirmados</li>
+              <li className={hasEvidence ? "done" : ""}><span>{hasEvidence ? "✓" : "2"}</span>Evidencias adjuntas <em>opcional</em></li>
+              {driveLinks.length > 0 && (
+                <li className={data.accessConfirmed ? "done" : ""}><span>{data.accessConfirmed ? "✓" : "3"}</span>Permisos de Drive confirmados</li>
+              )}
             </ul>
-            <div className={`readiness ${ready ? "ready" : ""}`}>{ready ? "Caso listo para enviar" : "Completá los puntos pendientes"}</div>
+            <div className={`readiness ${ready ? "ready" : ""}`}>{readiness}</div>
           </div>
           <div className="tip"><b>Consejo</b><p>Describí hechos observables: qué hiciste, qué mostró el sistema y qué esperabas que sucediera.</p></div>
           <p className="claim">{CLAIM}</p>
@@ -360,7 +372,13 @@ Acceso verificado para soporte: ${data.accessConfirmed ? "Sí" : "Pendiente de c
             <div className="modal-heading">
               <PairedHeading id="preview-title" line1="CASO LISTO" line2="PARA REVISAR" size="34px" />
             </div>
-            {!ready && <div className="warning">El borrador fue generado, pero todavía hay información o evidencias pendientes.</div>}
+            {!ready && (
+              <div className="warning">
+                {linksOk
+                  ? "El borrador fue generado, pero todavía hay datos obligatorios sin completar."
+                  : "Hay enlaces que no son de Google Drive ni de Google Docs: soporte no va a poder abrirlos."}
+              </div>
+            )}
             <textarea className="output" value={output} onChange={() => {}} readOnly />
             {docxError && <p className="error">{docxError}</p>}
             <div className="modal-actions">
