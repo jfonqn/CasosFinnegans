@@ -30,13 +30,24 @@ numeración, cabecera con la marca, pie y las 16 tipografías embebidas— se co
 sin tocar, así que lo generado es indistinguible de un documento escrito a mano
 sobre la plantilla.
 
+La disposición del cuerpo sigue un caso real escrito a mano, no la plantilla en
+blanco: las preguntas de "Problema" van como lista de dos niveles (pregunta
+arriba, respuesta anidada), los párrafos de cuerpo van justificados, y
+"¿Tiene alguna contingencia manual?" es la quinta pregunta de ese bloque y no
+una línea suelta en "Situación actual".
+
 Sobre esa base el generador agrega:
 
-- las capturas que sube el usuario, incrustadas dentro de "Caso de uso" y
-  reescaladas al ancho útil de la caja de texto sin deformarlas;
+- las capturas que el usuario pega con Ctrl+V dentro de cada cuadro de texto,
+  incrustadas en la sección a la que ese cuadro corresponde y reescaladas al
+  ancho útil de la caja sin deformarlas;
 - los enlaces de Drive como hipervínculos reales (`TargetMode="External"`);
 - dos secciones que la plantilla no pide pero que a soporte le sirven: el título
   del caso y las pruebas ya intentadas.
+
+Las secciones opcionales —Finni, pruebas intentadas, evidencias en Drive— no se
+escriben si están vacías: un "pendiente" dentro de un documento que ya se envía
+es sólo ruido.
 
 Si Finnegans publica una versión nueva de la plantilla, reemplazá el archivo de
 `public/` y corré `npm run test:docx`. Ese test corre el código de producción

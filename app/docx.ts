@@ -6,15 +6,27 @@
  * word/document.xml. Así se conservan intactos los estilos, la numeración, la
  * cabecera con la marca, el pie y las tipografías embebidas (Poppins y
  * Montserrat). Todo el resto del paquete OPC se copia tal cual.
+ *
+ * La disposición del cuerpo sigue un caso real escrito a mano: preguntas y
+ * respuestas como lista de dos niveles, párrafos justificados, y las capturas
+ * intercaladas en la sección a la que pertenecen.
  */
 import { unzipSync, zipSync, strToU8, strFromU8 } from "fflate";
 
 const TEMPLATE_URL = "/plantilla-finnegans.docx";
 
 /* Ancho útil de la caja de texto en EMU: pgSz 11906 twips menos los márgenes
-   izquierdo (1440) y derecho (1257,4) que declara el sectPr de la plantilla. */
+   izquierdo (1440) y derecho (1257,4) que declara el sectPr de la plantilla.
+   Coincide con las 6,4 pulgadas a las que el autor del caso real llevó cada
+   captura. */
 const CONTENT_WIDTH_EMU = Math.round((11906 - 1440 - 1257.4) * 635);
 const EMU_PER_PX = 9525;
+
+/* Los estilos de la plantilla traen cuerpos enormes (Title = 48pt) y el documento
+   los pisa run por run. Sin replicar ese override los títulos tapan la página. */
+const SIZE_DOC_TITLE = 34; // 17pt — "BUGS / PROBLEMAS REPORTADOS"
+const SIZE_CASE_TITLE = 60; // 30pt — "N° de caso"
+const SIZE_HEADER_LINE = 36; // 18pt — las líneas sueltas del encabezado
 
 const MIME_BY_EXT: Record<string, string> = {
   png: "image/png",
@@ -23,7 +35,25 @@ const MIME_BY_EXT: Record<string, string> = {
   gif: "image/gif",
 };
 
-export const ACCEPTED_IMAGE_TYPES = ".png,.jpg,.jpeg,.gif";
+/* Campos de texto que aceptan capturas pegadas. El orden fija el nombre de las
+   partes dentro del paquete, así que es estable entre generaciones. */
+export const IMAGE_SLOTS = [
+  "finni",
+  "whatFails",
+  "whatHappens",
+  "workaround",
+  "impact",
+  "steps",
+  "attempts",
+  "expected",
+] as const;
+
+export type ImageSlot = (typeof IMAGE_SLOTS)[number];
+export type CaseImages = Partial<Record<ImageSlot, File[]>>;
+
+export function isSupportedImage(file: File) {
+  return Object.values(MIME_BY_EXT).includes(file.type);
+}
 
 export type CaseDoc = {
   caseNumber: string;
@@ -48,7 +78,7 @@ export type CaseDoc = {
   expected: string;
   driveLinks: string[];
   accessConfirmed: boolean;
-  images: File[];
+  images: CaseImages;
 };
 
 /* ---------- helpers de XML ---------- */
@@ -60,12 +90,6 @@ function esc(value: string) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
-
-/* Los estilos de la plantilla traen cuerpos enormes (Title = 48pt) y el documento
-   los pisa run por run. Sin replicar ese override los títulos tapan la página. */
-const SIZE_DOC_TITLE = 34; // 17pt — "BUGS / PROBLEMAS REPORTADOS"
-const SIZE_CASE_TITLE = 60; // 30pt — "N° de caso"
-const SIZE_HEADER_LINE = 36; // 18pt — las líneas sueltas del encabezado
 
 type RunOptions = { bold?: boolean; link?: boolean; size?: number };
 
@@ -85,41 +109,63 @@ function run(text: string, options?: RunOptions) {
   return `<w:r>${rpr(options)}<w:t xml:space="preserve">${esc(text)}</w:t></w:r>`;
 }
 
-function listProps() {
-  return '<w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr><w:ind w:left="720" w:hanging="360"/>';
-}
+type ParaOptions = { style?: string; level?: number; size?: number; justify?: boolean };
 
-function para(runs: string, options?: { style?: string; numbered?: boolean; size?: number }) {
+/* El orden de los hijos del pPr lo fija el esquema CT_PPrBase: pStyle, numPr,
+   ind, jc, y recién al final el rPr de la marca de párrafo. */
+function paraProps(options?: ParaOptions) {
   let props = "<w:pPr>";
   if (options?.style) props += `<w:pStyle w:val="${options.style}"/>`;
-  if (options?.numbered) props += listProps();
+  if (options?.level !== undefined) {
+    props += `<w:numPr><w:ilvl w:val="${options.level}"/><w:numId w:val="1"/></w:numPr>`;
+    props += `<w:ind w:left="${720 * (options.level + 1)}" w:hanging="360"/>`;
+  }
+  if (options?.justify) props += '<w:jc w:val="both"/>';
   /* El rPr del pPr aplica a la marca de párrafo: si no lleva el mismo cuerpo,
      el interlineado queda calculado sobre el tamaño del estilo. */
-  props += rpr({ size: options?.size }) + "</w:pPr>";
-  return `<w:p>${props}${runs}</w:p>`;
+  return props + rpr({ size: options?.size }) + "</w:pPr>";
+}
+
+function para(runs: string, options?: ParaOptions) {
+  return `<w:p>${paraProps(options)}${runs}</w:p>`;
 }
 
 const title = (text: string, size: number) => para(run(text, { size }), { style: "Title", size });
 const subtitle = (text: string) => para(run(text), { style: "Subtitle" });
 const heading = (text: string) => para(run(text), { style: "Heading4" });
 const normal = (text: string, size?: number) => para(text ? run(text, { size }) : "", { size });
-const bullet = (label: string, value: string) => para(run(label, { bold: true }) + run(value), { numbered: true });
-const labeled = (label: string, value: string) => para(run(label, { bold: true }) + run(value));
+const body = (text: string) => para(run(text), { justify: true });
+const question = (text: string) => para(run(text), { level: 0, justify: true });
+const answer = (text: string) => para(run(text), { level: 1, justify: true });
+const labeled = (label: string, value: string) => para(run(label, { bold: true }) + run(value), { justify: true });
 
 /* Un párrafo por línea: el .docx tiene que respetar los saltos que escribió el
    usuario, sobre todo en los pasos del caso de uso. */
-function block(text: string, fallback = "") {
+function splitLines(text: string) {
   const lines = text.split("\n").map((line) => line.replace(/[^\S\n]+/g, " ").trim());
   while (lines.length && !lines[lines.length - 1]) lines.pop();
-  if (!lines.some(Boolean)) return normal(fallback);
-  return lines.map((line) => normal(line)).join("");
+  return lines.some(Boolean) ? lines : null;
+}
+
+function block(text: string, fallback = "") {
+  const lines = splitLines(text);
+  if (!lines) return fallback ? body(fallback) : normal("");
+  return lines.map((line) => (line ? body(line) : normal(""))).join("");
+}
+
+/* Igual que block() pero como respuesta anidada de la lista de preguntas. */
+function answerBlock(text: string, fallback: string) {
+  const lines = splitLines(text);
+  if (!lines) return answer(fallback);
+  return lines.filter(Boolean).map(answer).join("");
 }
 
 function hyperlink(relId: string, url: string) {
-  return `<w:p><w:pPr>${listProps()}${rpr()}</w:pPr><w:hyperlink r:id="${relId}">${run(url, { link: true })}</w:hyperlink></w:p>`;
+  return `<w:p>${paraProps({ level: 0 })}<w:hyperlink r:id="${relId}">${run(url, { link: true })}</w:hyperlink></w:p>`;
 }
 
-function picture(relId: string, id: number, name: string, widthEmu: number, heightEmu: number) {
+function picture(image: PreparedImage, id: number) {
+  const { relId, name, widthEmu, heightEmu } = image;
   return (
     `<w:p><w:pPr><w:spacing w:before="120" w:after="120" w:lineRule="auto"/></w:pPr><w:r>` +
     `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">` +
@@ -139,6 +185,7 @@ function picture(relId: string, id: number, name: string, widthEmu: number, heig
 /* ---------- imágenes ---------- */
 
 type PreparedImage = {
+  slot: ImageSlot;
   relId: string;
   part: string;
   /* fflate tipa las partes del zip sobre ArrayBuffer y no sobre ArrayBufferLike. */
@@ -173,24 +220,34 @@ async function measure(file: File) {
   }
 }
 
-async function prepareImages(files: File[], startId: number): Promise<PreparedImage[]> {
+function extensionOf(file: File) {
+  const byType = Object.entries(MIME_BY_EXT).find(([, mime]) => mime === file.type)?.[0];
+  if (byType) return byType;
+  const byName = (file.name.split(".").pop() ?? "").toLowerCase();
+  return MIME_BY_EXT[byName] ? byName : null;
+}
+
+async function prepareImages(images: CaseImages, startId: number): Promise<PreparedImage[]> {
   const prepared: PreparedImage[] = [];
-  for (let index = 0; index < files.length; index += 1) {
-    const file = files[index];
-    const ext = (file.name.split(".").pop() ?? "png").toLowerCase();
-    if (!MIME_BY_EXT[ext]) continue;
-    const { width, height } = await measure(file);
-    /* Escalamos sólo hacia abajo: una captura chica no se estira. */
-    const scale = Math.min(1, CONTENT_WIDTH_EMU / (width * EMU_PER_PX));
-    prepared.push({
-      relId: `rId${startId + index}`,
-      part: `word/media/evidencia${index + 1}.${ext}`,
-      bytes: new Uint8Array(await file.arrayBuffer()),
-      ext,
-      name: file.name,
-      widthEmu: Math.round(width * EMU_PER_PX * scale),
-      heightEmu: Math.round(height * EMU_PER_PX * scale),
-    });
+  for (const slot of IMAGE_SLOTS) {
+    for (const file of images[slot] ?? []) {
+      const ext = extensionOf(file);
+      if (!ext) continue;
+      const { width, height } = await measure(file);
+      /* Escalamos sólo hacia abajo: una captura chica no se estira. */
+      const scale = Math.min(1, CONTENT_WIDTH_EMU / (width * EMU_PER_PX));
+      const index = prepared.length + 1;
+      prepared.push({
+        slot,
+        relId: `rId${startId + prepared.length}`,
+        part: `word/media/evidencia${index}.${ext}`,
+        bytes: new Uint8Array(await file.arrayBuffer()),
+        ext,
+        name: file.name || `Captura ${index}`,
+        widthEmu: Math.round(width * EMU_PER_PX * scale),
+        heightEmu: Math.round(height * EMU_PER_PX * scale),
+      });
+    }
   }
   return prepared;
 }
@@ -201,6 +258,14 @@ const PENDING = "Pendiente de completar";
 
 function buildBody(data: CaseDoc, images: PreparedImage[], linkRels: string[]) {
   const parts: string[] = [];
+  let pictureId = 1000;
+  /* Las capturas se emiten dentro de la sección en la que fueron pegadas. */
+  const shots = (slot: ImageSlot) =>
+    images
+      .filter((image) => image.slot === slot)
+      .map((image) => picture(image, (pictureId += 1)))
+      .join("");
+  const hasShots = (slot: ImageSlot) => images.some((image) => image.slot === slot);
 
   parts.push(title("BUGS / PROBLEMAS REPORTADOS", SIZE_DOC_TITLE));
   parts.push(subtitle(""));
@@ -220,33 +285,49 @@ function buildBody(data: CaseDoc, images: PreparedImage[], linkRels: string[]) {
   parts.push(heading("Título del caso"));
   parts.push(block(data.title, PENDING));
 
-  parts.push(heading("Pegar respuesta y promt de Finni"));
-  parts.push(block(data.finni));
+  /* Secciones opcionales: si no hay ni texto ni capturas, no se escribe el título. */
+  if (data.finni.trim() || hasShots("finni")) {
+    parts.push(heading("Pegar respuesta y promt de Finni"));
+    parts.push(block(data.finni));
+    parts.push(shots("finni"));
+  }
 
   parts.push(heading("Problema"));
-  parts.push(bullet("¿Qué no funciona? ", data.whatFails.trim() || PENDING));
-  parts.push(bullet("¿Qué es lo que pasa? ", data.whatHappens.trim() || PENDING));
-  parts.push(bullet("¿Es la primera vez que hace la transacción? ", data.firstTime));
-  parts.push(bullet("¿Es una operación estándar? ", data.standardOperation));
+  parts.push(body("Debe responder las siguientes preguntas"));
+  parts.push(question("¿Qué no funciona?"));
+  parts.push(answerBlock(data.whatFails, PENDING));
+  parts.push(shots("whatFails"));
+  parts.push(question("¿Qué es lo que pasa?"));
+  parts.push(answerBlock(data.whatHappens, PENDING));
+  parts.push(shots("whatHappens"));
+  parts.push(question("¿Es la primera vez que hace la transacción?"));
+  parts.push(answer(data.firstTime));
+  parts.push(question("¿Es una operación estándar?"));
+  parts.push(answer(data.standardOperation));
+  parts.push(question("¿Tiene alguna contingencia manual?"));
+  parts.push(answerBlock(data.workaround, "No"));
+  parts.push(shots("workaround"));
 
   parts.push(heading("Situación actual"));
   parts.push(block(data.impact, PENDING));
-  if (data.workaround.trim()) parts.push(labeled("Contingencia manual: ", data.workaround.trim()));
+  parts.push(shots("impact"));
 
   parts.push(heading("Caso de uso"));
   parts.push(block(data.steps, PENDING));
   if (data.reportFormat.trim()) parts.push(labeled("Formato de grilla / informe: ", data.reportFormat.trim()));
-  images.forEach((image, index) =>
-    parts.push(picture(image.relId, 1000 + index, image.name, image.widthEmu, image.heightEmu)),
-  );
+  parts.push(shots("steps"));
 
-  parts.push(heading("Pruebas o soluciones intentadas"));
-  parts.push(block(data.attempts));
+  if (data.attempts.trim() || hasShots("attempts")) {
+    parts.push(heading("Pruebas o soluciones intentadas"));
+    parts.push(block(data.attempts));
+    parts.push(shots("attempts"));
+  }
 
   /* La plantilla aclara que si no se sabe qué debería dar, esta sección se deja
      vacía. Por eso acá no forzamos el "Pendiente de completar". */
   parts.push(heading("Resultado esperado"));
   parts.push(block(data.expected));
+  parts.push(shots("expected"));
 
   /* Los enlaces de Drive son opcionales: si no hay ninguno, la sección no se
      escribe. Un "pendiente" en un documento que ya se envía es sólo ruido. */

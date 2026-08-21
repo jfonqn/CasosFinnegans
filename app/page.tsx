@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Lockup, PairedHeading, Panel, SectionPill } from "./fisterra";
-import { ACCEPTED_IMAGE_TYPES, buildCaseDocx, caseFileName, type CaseDoc } from "./docx";
+import { buildCaseDocx, caseFileName, isSupportedImage, type CaseDoc, type CaseImages, type ImageSlot } from "./docx";
 
 type CaseData = {
   caseNumber: string;
@@ -94,9 +94,21 @@ function cleanOptional(text: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+/* El portapapeles expone la captura en items; files queda vacío en algunos
+   navegadores, así que lo usamos sólo como respaldo. */
+function imagesFrom(transfer: DataTransfer | null) {
+  if (!transfer) return [];
+  const fromItems = Array.from(transfer.items)
+    .filter((item) => item.kind === "file")
+    .map((item) => item.getAsFile())
+    .filter((file): file is File => file !== null);
+  const files = fromItems.length ? fromItems : Array.from(transfer.files);
+  return files.filter(isSupportedImage);
+}
+
 export default function Home() {
   const [data, setData] = useState(initialData);
-  const [images, setImages] = useState<File[]>([]);
+  const [shots, setShots] = useState<CaseImages>({});
   const [copied, setCopied] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [building, setBuilding] = useState(false);
@@ -104,6 +116,14 @@ export default function Home() {
 
   const update = <K extends keyof CaseData>(key: K, value: CaseData[K]) =>
     setData((current) => ({ ...current, [key]: value }));
+
+  const addShots = (slot: ImageSlot, files: File[]) =>
+    setShots((current) => ({ ...current, [slot]: [...(current[slot] ?? []), ...files] }));
+
+  const removeShot = (slot: ImageSlot, index: number) =>
+    setShots((current) => ({ ...current, [slot]: (current[slot] ?? []).filter((_, i) => i !== index) }));
+
+  const shotCount = Object.values(shots).reduce((total, files) => total + files.length, 0);
 
   const driveLinks = data.evidence
     .split(/\n|,/)
@@ -151,46 +171,38 @@ TÍTULO DEL CASO
 ${clean(data.title)}${optional("PEGAR RESPUESTA Y PROMT DE FINNI", data.finni)}
 
 PROBLEMA
+Debe responder las siguientes preguntas
 
-¿Qué no funciona?
-${clean(data.whatFails)}
-
-¿Qué es lo que pasa?
-${clean(data.whatHappens)}
-
-¿Es la primera vez que hace la transacción?
-${data.firstTime}
-
-¿Es una operación estándar?
-${data.standardOperation}
+- ¿Qué no funciona?
+  ${clean(data.whatFails)}
+- ¿Qué es lo que pasa?
+  ${clean(data.whatHappens)}
+- ¿Es la primera vez que hace la transacción?
+  ${data.firstTime}
+- ¿Es una operación estándar?
+  ${data.standardOperation}
+- ¿Tiene alguna contingencia manual?
+  ${cleanOptional(data.workaround) || "No"}
 
 SITUACIÓN ACTUAL
-${clean(data.impact)}${data.workaround.trim() ? `\nContingencia manual: ${tidy(data.workaround)}` : ""}
+${clean(data.impact)}
 
 CASO DE USO
 ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe: ${tidy(data.reportFormat)}` : ""}${
-      images.length ? `\n${images.length} captura(s) se incrustan en el .docx.` : ""
+      shotCount ? `\n${shotCount} captura(s) se incrustan en el .docx.` : ""
     }${optional("PRUEBAS O SOLUCIONES INTENTADAS", data.attempts)}${optional("RESULTADO ESPERADO", data.expected)}${evidenceBlock}`;
-  }, [data, driveLinks, images]);
+  }, [data, driveLinks, shotCount]);
 
   /* Las evidencias son opcionales: sólo frenan el caso si los enlaces están mal
      escritos, porque ahí soporte se va a encontrar con un link que no abre. */
   const linksOk = invalidLinks.length === 0;
-  const hasEvidence = driveLinks.length > 0 || images.length > 0;
+  const hasEvidence = driveLinks.length > 0 || shotCount > 0;
   const ready = progress === 100 && linksOk;
   const readiness = !linksOk
     ? "Revisá los enlaces de Drive"
     : ready
       ? "Caso listo para enviar"
       : "Completá los datos obligatorios";
-
-  function addImages(files: FileList | null) {
-    if (!files?.length) return;
-    /* Copiamos acá y no dentro del updater: el handler limpia el input apenas
-       termina y React ejecuta el updater después, cuando el FileList ya está vacío. */
-    const picked = Array.from(files);
-    setImages((current) => [...current, ...picked]);
-  }
 
   async function copyCase() {
     try {
@@ -206,7 +218,7 @@ ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe:
     setBuilding(true);
     setDocxError(null);
     try {
-      const payload: CaseDoc = { ...data, driveLinks, images };
+      const payload: CaseDoc = { ...data, driveLinks, images: shots };
       const blob = await buildCaseDocx(payload);
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -222,6 +234,15 @@ ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe:
       setBuilding(false);
     }
   }
+
+  /* Cada cuadro de texto acepta capturas pegadas, y van a parar a su propia
+     sección del documento. */
+  const pasteable = (slot: ImageSlot) => ({
+    slot,
+    files: shots[slot] ?? [],
+    onAdd: addShots,
+    onRemove: removeShot,
+  });
 
   return (
     <main className="page">
@@ -256,7 +277,7 @@ ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe:
           <Section number="01" title="Datos generales" note="Identificá el entorno donde ocurrió el problema.">
             <div className="grid three">
               <Field label="Fecha de ingreso"><input value={data.date} onChange={(e) => update("date", e.target.value)} /></Field>
-              <Field label="Dominio *"><input placeholder="Ej. COLUN" value={data.domain} onChange={(e) => update("domain", e.target.value)} /></Field>
+              <Field label="Dominio *"><input placeholder="Ej. INMIX" value={data.domain} onChange={(e) => update("domain", e.target.value)} /></Field>
               <Field label="Cliente *"><input placeholder="Razón social" value={data.client} onChange={(e) => update("client", e.target.value)} /></Field>
             </div>
             <div className="grid three">
@@ -271,68 +292,55 @@ ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe:
 
           <Section number="02" title="Consulta a Finni" note="Si ya consultaste a Finni, pegá acá el prompt y su respuesta.">
             <Field label="Prompt y respuesta de Finni" hint="Opcional. Evita que soporte repita un camino ya recorrido.">
-              <textarea placeholder="Pegá la consulta que hiciste y lo que respondió." value={data.finni} onChange={(e) => update("finni", e.target.value)} />
+              <Pasteable placeholder="Pegá la consulta que hiciste y lo que respondió." value={data.finni} onChange={(v) => update("finni", v)} {...pasteable("finni")} />
             </Field>
           </Section>
 
           <Section number="03" title="Descripción del problema" note="Usá lenguaje concreto. No es necesario conocer términos técnicos.">
-            <Field label="Título breve del caso *" hint="Ejemplo: El plan de ventas no permite distribuir por centro de costo">
+            <Field label="Título breve del caso *" hint="Ejemplo: El nuevo motor de retenciones no se aplica en el cálculo">
               <input placeholder="Resumen del problema en una línea" value={data.title} onChange={(e) => update("title", e.target.value)} />
             </Field>
             <Field label="¿Qué no funciona? *">
-              <textarea placeholder="Indicá la pantalla, proceso u operación afectada." value={data.whatFails} onChange={(e) => update("whatFails", e.target.value)} />
+              <Pasteable placeholder="Indicá la pantalla, proceso u operación afectada." value={data.whatFails} onChange={(v) => update("whatFails", v)} {...pasteable("whatFails")} />
             </Field>
             <Field label="¿Qué es lo que pasa? *">
-              <textarea placeholder="Describí el mensaje, bloqueo o resultado obtenido." value={data.whatHappens} onChange={(e) => update("whatHappens", e.target.value)} />
+              <Pasteable placeholder="Describí el mensaje, bloqueo o resultado obtenido." value={data.whatHappens} onChange={(v) => update("whatHappens", v)} {...pasteable("whatHappens")} />
             </Field>
             <div className="grid two">
               <Field label="¿Es la primera vez que hace la transacción?"><Select value={data.firstTime} onChange={(v) => update("firstTime", v)} options={["No", "Sí", "No sé"]} /></Field>
               <Field label="¿Es una operación estándar?"><Select value={data.standardOperation} onChange={(v) => update("standardOperation", v)} options={["Sí", "No", "No sé"]} /></Field>
             </div>
+            <Field label="¿Tiene alguna contingencia manual?" hint="Opcional. Si hay un rodeo temporal, contalo acá. Si no, se envía como «No».">
+              <Pasteable placeholder="Ej. se cargan los partes en una planilla aparte." value={data.workaround} onChange={(v) => update("workaround", v)} {...pasteable("workaround")} />
+            </Field>
           </Section>
 
           <Section number="04" title="Situación actual" note="Qué impacto tiene hoy el cliente mientras el problema sigue abierto.">
             <Field label="Impacto en el cliente *">
-              <textarea placeholder="Qué no puede hacer, desde cuándo y a cuánta gente u operación afecta." value={data.impact} onChange={(e) => update("impact", e.target.value)} />
-            </Field>
-            <Field label="¿Tiene alguna contingencia manual?" hint="Opcional. Si hay un rodeo temporal, contalo acá.">
-              <textarea placeholder="Ej. se cargan los partes en una planilla aparte." value={data.workaround} onChange={(e) => update("workaround", e.target.value)} />
+              <Pasteable placeholder="Qué no puede hacer, desde cuándo y a cuánta gente u operación afecta." value={data.impact} onChange={(v) => update("impact", v)} {...pasteable("impact")} />
             </Field>
           </Section>
 
           <Section number="05" title="Caso de uso y resultado" note="Estos datos ayudan a soporte a repetir el error sin pedir aclaraciones.">
             <Field label="Pasos para reproducir el problema *" hint="Incluí empresa, menú, datos cargados y momento exacto del error.">
-              <textarea className="large" placeholder={"1. Ingresar a…\n2. Seleccionar…\n3. Cargar…\n4. Guardar…"} value={data.steps} onChange={(e) => update("steps", e.target.value)} />
+              <Pasteable className="large" placeholder={"1. Ingresar a…\n2. Seleccionar…\n3. Cargar…\n4. Guardar…"} value={data.steps} onChange={(v) => update("steps", v)} {...pasteable("steps")} />
             </Field>
             <Field label="Formato de grilla o informe" hint="Opcional. Solo si el problema aparece en una grilla o un informe.">
               <input placeholder="Nombre del formato que usa el cliente" value={data.reportFormat} onChange={(e) => update("reportFormat", e.target.value)} />
             </Field>
             <Field label="¿Qué soluciones o pruebas ya se intentaron?">
-              <textarea placeholder="Indicá cambios de configuración, pruebas y sus resultados." value={data.attempts} onChange={(e) => update("attempts", e.target.value)} />
+              <Pasteable placeholder="Indicá cambios de configuración, pruebas y sus resultados." value={data.attempts} onChange={(v) => update("attempts", v)} {...pasteable("attempts")} />
             </Field>
             <Field label="Resultado esperado *" hint="Si no sabés qué debería dar, la plantilla permite dejarlo vacío.">
-              <textarea placeholder="Explicá qué debería permitir hacer el sistema." value={data.expected} onChange={(e) => update("expected", e.target.value)} />
+              <Pasteable placeholder="Explicá qué debería permitir hacer el sistema." value={data.expected} onChange={(v) => update("expected", v)} {...pasteable("expected")} />
             </Field>
           </Section>
 
-          <Section number="06" title="Evidencias" note="Opcional. Las capturas se incrustan en el documento; lo pesado va por Drive.">
+          <Section number="06" title="Evidencias en Drive" note="Opcional. Para videos y archivos que no entran como captura.">
             <div className="callout">
-              <strong>Nada de esto es obligatorio</strong>
-              <p>Las capturas de pantalla se incrustan directamente en el documento. Para videos o archivos grandes conviene Drive: subilos ahí y habilitá el acceso para quienes reciban el caso.</p>
+              <strong>Las capturas van arriba</strong>
+              <p>Pegá cada captura con Ctrl+V dentro del cuadro de texto que corresponda y se incrusta en esa misma sección del documento. Acá van sólo los videos y archivos grandes.</p>
             </div>
-            <Field label="Capturas para incrustar en el .docx" hint="Opcional. PNG, JPG o GIF. Se insertan dentro de «Caso de uso».">
-              <input type="file" accept={ACCEPTED_IMAGE_TYPES} multiple onChange={(e) => { addImages(e.target.files); e.target.value = ""; }} />
-            </Field>
-            {images.length > 0 && (
-              <ul className="filelist">
-                {images.map((file, index) => (
-                  <li key={`${file.name}-${index}`}>
-                    <span>{file.name}</span>
-                    <button type="button" onClick={() => setImages((current) => current.filter((_, i) => i !== index))}>Quitar</button>
-                  </li>
-                ))}
-              </ul>
-            )}
             <Field label="Enlaces de Google Drive" hint="Opcional. Pegá un enlace por línea.">
               <textarea placeholder={"https://drive.google.com/…\nhttps://docs.google.com/…"} value={data.evidence} onChange={(e) => update("evidence", e.target.value)} />
             </Field>
@@ -392,6 +400,80 @@ ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe:
         </div>
       )}
     </main>
+  );
+}
+
+/* Cuadro de texto que acepta capturas pegadas o arrastradas. */
+function Pasteable({
+  slot,
+  value,
+  onChange,
+  placeholder,
+  className,
+  files,
+  onAdd,
+  onRemove,
+}: {
+  slot: ImageSlot;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  files: File[];
+  onAdd: (slot: ImageSlot, files: File[]) => void;
+  onRemove: (slot: ImageSlot, index: number) => void;
+}) {
+  const [over, setOver] = useState(false);
+  return (
+    <div className={`pasteable ${over ? "over" : ""}`}>
+      <textarea
+        className={className}
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onPaste={(event) => {
+          const images = imagesFrom(event.clipboardData);
+          /* Sólo interceptamos si vino una imagen; el texto se pega normal. */
+          if (!images.length) return;
+          event.preventDefault();
+          onAdd(slot, images);
+        }}
+        onDragOver={(event) => {
+          if (!Array.from(event.dataTransfer.types).includes("Files")) return;
+          event.preventDefault();
+          setOver(true);
+        }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(event) => {
+          const images = imagesFrom(event.dataTransfer);
+          setOver(false);
+          if (!images.length) return;
+          event.preventDefault();
+          onAdd(slot, images);
+        }}
+      />
+      {files.length === 0 ? (
+        <small className="paste-hint">Pegá una captura con Ctrl+V o arrastrala acá.</small>
+      ) : (
+        <Shots files={files} onRemove={(index) => onRemove(slot, index)} />
+      )}
+    </div>
+  );
+}
+
+function Shots({ files, onRemove }: { files: File[]; onRemove: (index: number) => void }) {
+  const urls = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files]);
+  useEffect(() => () => urls.forEach(URL.revokeObjectURL), [urls]);
+  return (
+    <ul className="shots">
+      {urls.map((url, index) => (
+        <li key={url}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- es un blob local, no un asset servido */}
+          <img src={url} alt={files[index].name || `Captura ${index + 1}`} />
+          <button type="button" onClick={() => onRemove(index)} aria-label={`Quitar captura ${index + 1}`}>×</button>
+        </li>
+      ))}
+    </ul>
   );
 }
 

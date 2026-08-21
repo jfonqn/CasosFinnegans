@@ -234,29 +234,31 @@ input::placeholder, textarea::placeholder { color: #8C97A8; font-weight: 400; }
 .check { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--fs-ink); cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: #0A2F43; }
 
-/* El selector de archivos nativo no acepta los tokens del panel, así que sólo
-   alineamos su botón interno con el resto de los controles. */
-.field input[type="file"] { padding: 10px 12px; font-size: 14px; cursor: pointer; }
-.field input[type="file"]::file-selector-button {
-  margin-right: 14px; border: var(--fs-hairline); border-radius: 999px;
-  padding: 8px 16px; background: rgba(255,255,255,.72); color: var(--fs-navy);
-  font-family: inherit; font-size: 12px; font-weight: 600; letter-spacing: .06em;
-  text-transform: uppercase; cursor: pointer;
+/* ── Capturas pegadas en el cuadro de texto ── */
+.pasteable { display: flex; flex-direction: column; gap: 9px; }
+/* El borde punteado aparece sólo mientras se arrastra un archivo encima. */
+.pasteable.over textarea {
+  border-style: dashed; border-color: var(--fs-navy-lift);
+  background: rgba(255,255,255,.85);
+}
+.paste-hint {
+  text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 12px;
+  line-height: 1.4; color: var(--fs-ink-dim); opacity: .8;
 }
 
-.filelist { list-style: none; margin: -8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.filelist li {
-  display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  background: var(--fs-panel-fill); border: var(--fs-hairline); border-radius: 14px;
-  padding: 10px 12px 10px 16px; font-size: 14px; color: var(--fs-ink);
+.shots { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.shots li {
+  position: relative; width: 108px; height: 72px; border-radius: 12px;
+  overflow: hidden; border: var(--fs-hairline); background: var(--fs-panel-fill);
 }
-.filelist li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.filelist li button {
-  flex: none; border: 0; background: none; padding: 4px 6px; cursor: pointer;
-  font-family: inherit; font-size: 11px; font-weight: 600; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--fs-red-deep);
+.shots img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shots li button {
+  position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+  display: grid; place-items: center; border: 0; border-radius: 999px; cursor: pointer;
+  background: rgba(10,47,67,.78); color: var(--fs-white);
+  font-family: inherit; font-size: 15px; line-height: 1;
 }
-.filelist li button:hover { text-decoration: underline; }
+.shots li button:hover { background: var(--fs-red); }
 
 /* ── Botones ── */
 .cta {
