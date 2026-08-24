@@ -212,9 +212,11 @@ export function caseMailBody(data: MailData, link: string) {
   return lines.join("\n");
 }
 
+/* Se aceptan comas y punto y coma porque Outlook separa con ";" al copiar una
+   lista de destinatarios, pero el mailto tiene que emitir comas. */
 const addressList = (value: string) =>
   value
-    .split(",")
+    .split(/[,;]/)
     .map((address) => address.trim())
     .filter(Boolean)
     .join(",");

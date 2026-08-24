@@ -144,6 +144,13 @@ test("codifica el mailto como lo espera Outlook", () => {
   assert.ok(url.includes("%0D%0A"), "los saltos necesitan CRLF o Outlook los pierde");
   assert.ok(url.includes("%26"), "el & del asunto tiene que ir escapado");
 
+  /* Outlook separa con ";" al copiar una lista; el mailto necesita comas. */
+  const puntoYComa = mailtoUrl({
+    to: "mgalarza@ejemplo.com; soporte@ejemplo.com ; casos@ejemplo.com",
+    subject: "s",
+    body: "b",
+  });
+  assert.ok(puntoYComa.startsWith("mailto:mgalarza@ejemplo.com,soporte@ejemplo.com,casos@ejemplo.com?"));
   const conCopia = mailtoUrl({ to: "a@b.com", cc: "jefe@fisterra.com", subject: "s", body: "b" });
   assert.ok(conCopia.includes("cc=jefe%40fisterra.com"));
 });
