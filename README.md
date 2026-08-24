@@ -76,6 +76,50 @@ El documento hereda los permisos de la carpeta destino: compartila una vez con
 quien tenga que leer los casos y la app no necesita otorgar accesos por su
 cuenta. Por eso el scope alcanza y ningún caso queda accesible por URL pública.
 
+### Alta en Google Cloud, paso a paso
+
+No hay que "aprender Google Cloud": la consola es sólo el lugar donde se emite
+la credencial. Google no deja que una página cualquiera escriba en el Drive de
+alguien, así que la app necesita identificarse. El client ID es ese documento.
+Todo lo que sigue es gratis y no pide tarjeta.
+
+1. **Crear el proyecto.** En <https://console.cloud.google.com> abrí el selector
+   de proyecto arriba a la izquierda y creá uno nuevo (ej. `casos-finnegans`).
+   Un proyecto es sólo una carpeta que agrupa credenciales y permisos.
+
+2. **Habilitar la Drive API.** Entrá a
+   <https://console.cloud.google.com/apis/library/drive.googleapis.com>, revisá
+   que arriba figure el proyecto recién creado y dale *Habilitar*. Esto le dice
+   al proyecto que puede hablar con Drive.
+
+3. **Pantalla de consentimiento.** En *Google Auth Platform* (antes "OAuth
+   consent screen"), <https://console.cloud.google.com/auth/overview>:
+   - **Branding**: nombre de la app y un mail de contacto.
+   - **Audience**: si la organización tiene Google Workspace, elegí **Internal**.
+     Queda limitada a la organización y te ahorra el límite de 100 usuarios de
+     prueba y el trámite de publicación. Si no, *External* + *Publish app*: con
+     `drive.file` no hay verificación de por medio porque es un scope no sensible.
+
+4. **Crear el client ID.** En *Google Auth Platform > Clients > Create client*:
+   - Tipo: **Aplicación web**.
+   - **Authorized JavaScript origins**: `http://localhost:3000` y la URL de
+     Vercel (`https://…vercel.app`), sin barra final.
+   - **Authorized redirect URIs**: se deja vacío. Google Identity Services abre
+     un popup contra el origen, no redirige. Cargar acá la URL en vez de en
+     orígenes es el error más común y da `origin_mismatch`.
+
+   Copiá el client ID (`…apps.googleusercontent.com`). Es público por diseño:
+   sólo sirve desde los orígenes que declaraste.
+
+5. **La carpeta de Drive.** Esto ya no es Google Cloud. Creá la carpeta en Drive,
+   compartila con quien tenga que leer los casos y copiá el ID de la URL: es lo
+   que va después de `/folders/`.
+
+6. **Cargar las variables.** Local: copiá `.env.example` a `.env.local` y
+   completalo. En Vercel: *Settings > Environment Variables*, las mismas cuatro,
+   y volvé a desplegar (los `NEXT_PUBLIC_*` se embeben en el build, así que un
+   deploy viejo no las toma).
+
 `npm run test:app` cubre el armado del multipart de conversión, los parámetros
 de la subida y la codificación del `mailto`. El ida y vuelta real con Google no
 está cubierto: hace falta un client ID y una cuenta.
