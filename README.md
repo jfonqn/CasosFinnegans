@@ -97,8 +97,14 @@ Todo lo que sigue es gratis y no pide tarjeta.
    - **Branding**: nombre de la app y un mail de contacto.
    - **Audience**: si la organización tiene Google Workspace, elegí **Internal**.
      Queda limitada a la organización y te ahorra el límite de 100 usuarios de
-     prueba y el trámite de publicación. Si no, *External* + *Publish app*: con
-     `drive.file` no hay verificación de por medio porque es un scope no sensible.
+     prueba y el trámite de publicación.
+   - Si no hay Workspace (o el proyecto se creó con una cuenta personal),
+     *Internal* no aparece: queda *External*. Ahí **no alcanza con crear la
+     app**: nace en estado *Testing*, donde sólo entran las cuentas cargadas
+     en *Test users*, y cualquier otra recibe `Error 403: access_denied`.
+     Salidas: agregar la cuenta en *Test users*, o darle *Publish app* para
+     pasarla a producción. Con `drive.file`, que es un scope no sensible, no
+     hace falta la verificación de Google para publicar.
 
 4. **Crear el client ID.** En *Google Auth Platform > Clients > Create client*:
    - Tipo: **Aplicación web**.
