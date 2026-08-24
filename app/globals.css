@@ -339,7 +339,21 @@ input::placeholder, textarea::placeholder { color: #8C97A8; font-weight: 400; }
   border: var(--fs-hairline); background: rgba(255,255,255,.62); border-radius: 20px;
   padding: 20px; font-size: 13px; font-weight: 400; line-height: 1.6; color: var(--fs-ink); outline: none;
 }
-.modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 18px; }
+.drive-result {
+  margin-top: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  background: var(--fs-panel-fill); border: var(--fs-hairline);
+  border-radius: 18px; padding: 18px 20px;
+}
+.drive-result strong {
+  font-size: 11px; font-weight: 600; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--fs-navy);
+}
+.drive-result a {
+  font-size: 13px; line-height: 1.45; color: var(--fs-ink); word-break: break-all;
+}
+
+.modal-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 18px; }
+.secondary:disabled, .cta:disabled { pointer-events: none; }
 
 /* ── Adaptación a viewports chicos.
    El documento de diseño está trazado para desktop y no declara breakpoints;

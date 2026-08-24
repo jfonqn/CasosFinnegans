@@ -50,9 +50,35 @@ escriben si están vacías: un "pendiente" dentro de un documento que ya se env�
 es sólo ruido.
 
 Si Finnegans publica una versión nueva de la plantilla, reemplazá el archivo de
-`public/` y corré `npm run test:docx`. Ese test corre el código de producción
+`public/` y corré `npm run test:app`. Ese test corre el código de producción
 contra la plantilla real y verifica que sigan estando los estilos, el `sectPr`
 que engancha cabecera y pie, y todas las relaciones que el documento referencia.
+
+## Subida a Drive y mail a soporte
+
+Además de descargar el `.docx`, la app puede subirlo a una carpeta de Drive
+**convertido a Google Doc** y abrir el mail a soporte con el enlace en el cuerpo.
+
+El archivo no se adjunta al mail y no es un descuido: `mailto:` no puede
+adjuntar —lo prohíbe el RFC 6068— y Finnegans pide recibir enlaces de Drive, no
+archivos. Mandar el enlace evita además tener que registrar una app en Entra ID
+para hablar con Microsoft Graph: `mailto:` funciona en cualquier Outlook.
+
+Todo pasa en el navegador. El token sale de Google Identity Services con el
+scope `drive.file`, que sólo alcanza los archivos que crea esta app y está
+clasificado como no sensible, así que no hay que pasar por la verificación de
+apps de Google.
+
+Se configura con las variables de `.env.example`. **Si falta el client ID o la
+carpeta, el botón no aparece** y la app sigue funcionando con la descarga.
+
+El documento hereda los permisos de la carpeta destino: compartila una vez con
+quien tenga que leer los casos y la app no necesita otorgar accesos por su
+cuenta. Por eso el scope alcanza y ningún caso queda accesible por URL pública.
+
+`npm run test:app` cubre el armado del multipart de conversión, los parámetros
+de la subida y la codificación del `mailto`. El ida y vuelta real con Google no
+está cubierto: hace falta un client ID y una cuenta.
 
 ## Deploy targets
 
@@ -150,7 +176,7 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `npm run dev`: start local development
 - `npm run build`: verify the vinext build output
 - `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run test:docx`: verificar el .docx generado contra la plantilla real
+- `npm run test:app`: verificar el .docx contra la plantilla real y el armado de la subida a Drive
 - `npm run db:generate`: generate Drizzle migrations after schema changes
 
 ## Learn More

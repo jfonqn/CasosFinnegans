@@ -3,6 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Lockup, PairedHeading, Panel, SectionPill } from "./fisterra";
 import { buildCaseDocx, caseFileName, isSupportedImage, type CaseDoc, type CaseImages, type ImageSlot } from "./docx";
+import {
+  DRIVE_CONFIG,
+  caseMailBody,
+  caseMailSubject,
+  isDriveConfigured,
+  mailtoUrl,
+  requestDriveToken,
+  uploadAsGoogleDoc,
+} from "./drive";
 
 type CaseData = {
   caseNumber: string;
@@ -113,6 +122,9 @@ export default function Home() {
   const [showPreview, setShowPreview] = useState(false);
   const [building, setBuilding] = useState(false);
   const [docxError, setDocxError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [driveLink, setDriveLink] = useState<string | null>(null);
+  const [driveError, setDriveError] = useState<string | null>(null);
 
   const update = <K extends keyof CaseData>(key: K, value: CaseData[K]) =>
     setData((current) => ({ ...current, [key]: value }));
@@ -232,6 +244,38 @@ ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe:
       setDocxError(error instanceof Error ? error.message : "No se pudo generar el documento.");
     } finally {
       setBuilding(false);
+    }
+  }
+
+  function openMail(link: string) {
+    window.location.href = mailtoUrl({
+      to: DRIVE_CONFIG.to,
+      cc: DRIVE_CONFIG.cc,
+      subject: caseMailSubject(data),
+      body: caseMailBody(data, link),
+    });
+  }
+
+  /* Sube el caso a Drive convertido a Google Doc y abre el mail con el enlace.
+     El .docx no se adjunta: `mailto:` no puede, y Finnegans pide enlaces. */
+  async function sendViaDrive() {
+    setSending(true);
+    setDriveError(null);
+    try {
+      const blob = await buildCaseDocx({ ...data, driveLinks, images: shots });
+      const token = await requestDriveToken(DRIVE_CONFIG.clientId);
+      const file = await uploadAsGoogleDoc({
+        blob,
+        fileName: caseFileName(data),
+        token,
+        folderId: DRIVE_CONFIG.folderId,
+      });
+      setDriveLink(file.webViewLink);
+      openMail(file.webViewLink);
+    } catch (error) {
+      setDriveError(error instanceof Error ? error.message : "No se pudo subir el caso a Drive.");
+    } finally {
+      setSending(false);
     }
   }
 
@@ -388,13 +432,28 @@ ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe:
               </div>
             )}
             <textarea className="output" value={output} onChange={() => {}} readOnly />
+            {driveLink && (
+              <div className="drive-result">
+                <strong>Documento creado en Drive</strong>
+                <a href={driveLink} target="_blank" rel="noreferrer">{driveLink}</a>
+                {/* Si el sistema no tiene un cliente de mail asociado, el enlace
+                    sigue acá para copiarlo a mano. */}
+                <button type="button" className="secondary" onClick={() => openMail(driveLink)}>Abrir el mail de nuevo</button>
+              </div>
+            )}
             {docxError && <p className="error">{docxError}</p>}
+            {driveError && <p className="error">{driveError}</p>}
             <div className="modal-actions">
               <button className="secondary" onClick={() => setShowPreview(false)}>Volver a editar</button>
               <button className="secondary" onClick={copyCase}>{copied ? "¡Copiado!" : "Copiar texto"}</button>
-              <button className="cta compact" onClick={downloadDocx} disabled={building} style={{ background: ctaBg }}>
+              <button className="secondary" onClick={downloadDocx} disabled={building}>
                 {building ? "Generando…" : "Descargar .docx"}
               </button>
+              {isDriveConfigured() && (
+                <button className="cta compact" onClick={sendViaDrive} disabled={sending} style={{ background: ctaBg }}>
+                  {sending ? "Subiendo a Drive…" : "Subir a Drive y enviar"}
+                </button>
+              )}
             </div>
           </div>
         </div>
