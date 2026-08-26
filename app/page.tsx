@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Lockup, PairedHeading, Panel, SectionPill } from "./fisterra";
 import { buildCaseDocx, caseFileName, isSupportedImage, type CaseDoc, type CaseImages, type ImageSlot } from "./docx";
+import { BUILD_LABEL, diagnostics } from "./version";
 import {
   DRIVE_CONFIG,
   caseMailBody,
@@ -127,6 +128,7 @@ export default function Home() {
   const [driveLink, setDriveLink] = useState<string | null>(null);
   const [driveError, setDriveError] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [diagCopied, setDiagCopied] = useState(false);
 
   const update = <K extends keyof CaseData>(key: K, value: CaseData[K]) =>
     setData((current) => ({ ...current, [key]: value }));
@@ -262,6 +264,16 @@ ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe:
      de resultado deja el botón a mano: ese click sí es un gesto fresco. */
   function openMail(link: string) {
     window.location.href = mailtoUrl(mailFor(link));
+  }
+
+  async function copyDiagnostics() {
+    try {
+      await navigator.clipboard.writeText(diagnostics({ Drive: isDriveConfigured() ? "configurado" : "sin configurar" }));
+    } catch {
+      /* Sin permiso de portapapeles no pasa nada: la versión sigue a la vista. */
+    }
+    setDiagCopied(true);
+    window.setTimeout(() => setDiagCopied(false), 1800);
   }
 
   async function copyDriveLink(link: string) {
@@ -437,6 +449,14 @@ ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe:
           <p className="claim">{CLAIM}</p>
         </aside>
       </div>
+
+      {/* Discreto al pie: sirve para saber contra qué build estamos mirando
+          cuando alguien reporta algo. Un clic copia el diagnóstico completo. */}
+      <footer className="version">
+        <button type="button" onClick={copyDiagnostics} title="Copiar datos de la versión">
+          {diagCopied ? "Datos copiados" : BUILD_LABEL}
+        </button>
+      </footer>
 
       {showPreview && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="preview-title">

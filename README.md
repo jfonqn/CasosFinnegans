@@ -130,6 +130,22 @@ Todo lo que sigue es gratis y no pide tarjeta.
 de la subida y la codificación del `mailto`. El ida y vuelta real con Google no
 está cubierto: hace falta un client ID y una cuenta.
 
+## Versión de la build
+
+Al pie de la página, discreto y a la derecha, hay un sello con la versión.
+Un clic copia el diagnóstico —versión, commit, tamaño de pantalla con su
+densidad, navegador y si Drive está configurado—, que es lo que conviene pedir
+cuando alguien reporta algo raro.
+
+El número vive en `app/version.ts`, repetido a mano respecto de `package.json`
+para no arrastrar el `package.json` entero al bundle del cliente.
+`npm run test:app` falla si los dos se desincronizan.
+
+El commit lo completa Vercel en `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA`, pero sólo
+si en *Settings > Environment Variables* está tildado **Enable access to System
+Environment Variables**. Sin eso llega vacío y el sello muestra únicamente la
+versión, sin romperse.
+
 ## Deploy targets
 
 El código de `app/` es Next.js App Router estándar, así que el proyecto compila

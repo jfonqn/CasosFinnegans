@@ -323,6 +323,17 @@ input::placeholder, textarea::placeholder { color: #8C97A8; font-weight: 400; }
 /* Claim — Montserrat Italic en tinta, alineado a la derecha. */
 .claim { margin: 2px 4px 0; font-style: italic; text-align: right; font-size: 14px; line-height: 1.5; color: var(--fs-ink-dim); }
 
+/* ── Sello de versión ── */
+/* Presente pero callado: se apaga hasta que lo buscás. */
+.version { max-width: 1240px; margin: 0 auto; padding: 28px; text-align: right; }
+.version button {
+  border: 0; background: none; padding: 4px; cursor: pointer;
+  font-family: inherit; font-size: 11px; letter-spacing: .08em;
+  color: var(--fs-ink-dim); opacity: .45;
+  transition: opacity var(--fs-duration) var(--fs-ease);
+}
+.version button:hover, .version button:focus-visible { opacity: 1; }
+
 /* ── Vista previa ── */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(10,47,67,.72); z-index: 30; display: grid; place-items: center; padding: 24px; }
 .modal {
@@ -395,6 +406,7 @@ input::placeholder, textarea::placeholder { color: #8C97A8; font-weight: 400; }
   .status-dot { display: none; }
   .hero { padding: 40px 20px 8px; }
   .workspace { padding: 28px 20px 0; }
+  .version { padding: 24px 20px; }
   .section-head, .section-body { padding: 20px; }
   .section-body { padding-top: 22px; }
   .grid.three, .grid.two { grid-template-columns: 1fr; }

@@ -1,6 +1,6 @@
 {
   "name": "site-creator-vinext-starter",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -13,7 +13,7 @@
     "build:next": "next build",
     "start:next": "next start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
-    "test:app": "node --test tests/docx.test.mjs tests/drive.test.mjs",
+    "test:app": "node --test tests/docx.test.mjs tests/drive.test.mjs tests/version.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },
