@@ -14,8 +14,16 @@ import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const drive = await import(pathToFileURL(path.join(ROOT, "app/drive.ts")).href);
-const { driveMetadata, multipartBody, uploadAsGoogleDoc, caseMailSubject, caseMailBody, mailtoUrl, isDriveConfigured } =
-  drive;
+const {
+  driveMetadata,
+  multipartBody,
+  uploadAsGoogleDoc,
+  caseMailSubject,
+  caseMailBody,
+  mailtoUrl,
+  outlookWebUrl,
+  isDriveConfigured,
+} = drive;
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const GOOGLE_DOC_MIME = "application/vnd.google-apps.document";
@@ -159,4 +167,22 @@ test("el flujo se apaga solo si falta configuración", () => {
   assert.equal(isDriveConfigured({ clientId: "", folderId: "", to: "", cc: "" }), false);
   assert.equal(isDriveConfigured({ clientId: "abc", folderId: "", to: "", cc: "" }), false);
   assert.equal(isDriveConfigured({ clientId: "abc", folderId: "xyz", to: "", cc: "" }), true);
+});
+
+test("ofrece Outlook Web como salida cuando mailto no abre nada", () => {
+  /* mailto depende de que el equipo tenga un cliente asociado y de que el
+     navegador permita el salto; este es un https y siempre abre. */
+  const url = outlookWebUrl({
+    to: "a@b.com; c@d.com",
+    cc: "jefe@fisterra.com",
+    subject: "[INMIX] Retenciones & percepciones",
+    body: ["Hola,", "segunda línea"].join(String.fromCharCode(10)),
+  });
+  assert.ok(url.startsWith("https://outlook.office.com/mail/deeplink/compose?"));
+  const params = new URL(url).searchParams;
+  assert.equal(params.get("to"), "a@b.com,c@d.com");
+  assert.equal(params.get("cc"), "jefe@fisterra.com");
+  assert.equal(params.get("subject"), "[INMIX] Retenciones & percepciones");
+  assert.ok(params.get("body").includes("segunda línea"));
+  assert.ok(!url.includes("+"), "los espacios van como %20");
 });

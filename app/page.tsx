@@ -9,6 +9,7 @@ import {
   caseMailSubject,
   isDriveConfigured,
   mailtoUrl,
+  outlookWebUrl,
   requestDriveToken,
   uploadAsGoogleDoc,
 } from "./drive";
@@ -125,6 +126,7 @@ export default function Home() {
   const [sending, setSending] = useState(false);
   const [driveLink, setDriveLink] = useState<string | null>(null);
   const [driveError, setDriveError] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const update = <K extends keyof CaseData>(key: K, value: CaseData[K]) =>
     setData((current) => ({ ...current, [key]: value }));
@@ -247,13 +249,29 @@ ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe:
     }
   }
 
+  const mailFor = (link: string) => ({
+    to: DRIVE_CONFIG.to,
+    cc: DRIVE_CONFIG.cc,
+    subject: caseMailSubject(data),
+    body: caseMailBody(data, link),
+  });
+
+  /* Chrome sólo deja saltar a un protocolo externo con una activación de usuario
+     reciente, y acá venimos de un await largo (popup de Google + subida). Así que
+     este intento puede no hacer nada, en silencio y sin error. Por eso el bloque
+     de resultado deja el botón a mano: ese click sí es un gesto fresco. */
   function openMail(link: string) {
-    window.location.href = mailtoUrl({
-      to: DRIVE_CONFIG.to,
-      cc: DRIVE_CONFIG.cc,
-      subject: caseMailSubject(data),
-      body: caseMailBody(data, link),
-    });
+    window.location.href = mailtoUrl(mailFor(link));
+  }
+
+  async function copyDriveLink(link: string) {
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      /* Sin permiso de portapapeles el enlace sigue visible y seleccionable. */
+    }
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 1800);
   }
 
   /* Sube el caso a Drive convertido a Google Doc y abre el mail con el enlace.
@@ -436,9 +454,19 @@ ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe:
               <div className="drive-result">
                 <strong>Documento creado en Drive</strong>
                 <a href={driveLink} target="_blank" rel="noreferrer">{driveLink}</a>
-                {/* Si el sistema no tiene un cliente de mail asociado, el enlace
-                    sigue acá para copiarlo a mano. */}
-                <button type="button" className="secondary" onClick={() => openMail(driveLink)}>Abrir el mail de nuevo</button>
+                <p>Si Outlook no se abrió solo, abrilo desde acá.</p>
+                <div className="drive-actions">
+                  <button type="button" className="cta compact" onClick={() => openMail(driveLink)} style={{ background: ctaBg }}>
+                    Abrir en Outlook
+                  </button>
+                  {/* Un https común: abre aunque el equipo no tenga Outlook de escritorio. */}
+                  <a className="secondary" href={outlookWebUrl(mailFor(driveLink))} target="_blank" rel="noreferrer">
+                    Abrir en Outlook Web
+                  </a>
+                  <button type="button" className="secondary" onClick={() => copyDriveLink(driveLink)}>
+                    {linkCopied ? "¡Copiado!" : "Copiar enlace"}
+                  </button>
+                </div>
               </div>
             )}
             {docxError && <p className="error">{docxError}</p>}

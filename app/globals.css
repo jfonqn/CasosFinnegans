@@ -348,9 +348,13 @@ input::placeholder, textarea::placeholder { color: #8C97A8; font-weight: 400; }
   font-size: 11px; font-weight: 600; letter-spacing: .09em;
   text-transform: uppercase; color: var(--fs-navy);
 }
-.drive-result a {
+.drive-result > a {
   font-size: 13px; line-height: 1.45; color: var(--fs-ink); word-break: break-all;
 }
+.drive-result p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--fs-ink-dim); }
+.drive-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+/* El enlace a Outlook Web comparte el aspecto de los botones secundarios. */
+.drive-actions .secondary { display: inline-flex; align-items: center; text-decoration: none; }
 
 .modal-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 18px; }
 .secondary:disabled, .cta:disabled { pointer-events: none; }

@@ -221,6 +221,19 @@ const addressList = (value: string) =>
     .filter(Boolean)
     .join(",");
 
+/* Alternativa para cuando `mailto:` no abre nada: o porque el sistema no tiene
+   un cliente de mail asociado, o porque el navegador bloqueó el salto a un
+   protocolo externo. Esto es un https común y corriente, así que siempre abre. */
+export function outlookWebUrl(options: { to: string; cc?: string; subject: string; body: string }) {
+  const params = new URLSearchParams();
+  params.set("to", addressList(options.to));
+  const cc = addressList(options.cc ?? "");
+  if (cc) params.set("cc", cc);
+  params.set("subject", options.subject);
+  params.set("body", options.body);
+  return `https://outlook.office.com/mail/deeplink/compose?${params.toString().replace(/\+/g, "%20")}`;
+}
+
 export function mailtoUrl(options: { to: string; cc?: string; subject: string; body: string }) {
   const params = new URLSearchParams();
   const cc = addressList(options.cc ?? "");
