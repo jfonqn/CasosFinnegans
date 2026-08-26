@@ -309,12 +309,16 @@ ${clean(data.steps)}${data.reportFormat.trim() ? `\nFormato de grilla / informe:
   return (
     <main className="page">
       <header className="topbar">
-        <Lockup size={34} />
-        <div className="topbar-id">
-          <strong>Casos Finnegans</strong>
-          <span>Asistente de carga</span>
+        {/* El borde inferior va a todo el ancho, pero el contenido se alinea con
+            el resto de la página, así que necesita su propio contenedor. */}
+        <div className="topbar-inner">
+          <Lockup size={34} />
+          <div className="topbar-id">
+            <strong>Casos Finnegans</strong>
+            <span>Asistente de carga</span>
+          </div>
+          <div className="status-dot"><i /> Borrador guardado en este dispositivo</div>
         </div>
-        <div className="status-dot"><i /> Borrador guardado en este dispositivo</div>
       </header>
 
       <section className="hero">
